@@ -21,10 +21,8 @@ void publish(const M& message) const
 // 关闭与此发布者关联的广播
 void shutdown()
 
-
-
+// 还不知道怎么用，mark一下，有知道的欢迎评论区留言
 boost::function<void(const SubscriberLinkPtr &)> getLastMessageCallback()
-
 
 // 获取与此发布者关联的订阅者的数量
 uint32_t getNumSubscribers() const
@@ -42,4 +40,6 @@ bool isLatched() const
 #### 1.2 常用命令行工具
 
 http://wiki.ros.org/rostopic
+
+
 
