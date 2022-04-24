@@ -55,7 +55,10 @@ find_package(catkin REQUIRED COMPONENTS
 #   Message1.msg
 #   Message2.msg
 # )
-add_message_files(FILES Person.msg)
+add_message_files(FILES 
+    Person.msg
+    HeaderString.msg
+    )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -142,6 +145,9 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(talker src/topic/talker.cpp)
 target_link_libraries(talker ${catkin_LIBRARIES})
+
+add_executable(offset src/topic/offset.cpp)
+target_link_libraries(offset ${catkin_LIBRARIES})
 #add_dependencies(talker ${PROJECT_NAME}_generate_messages_cpp)
 
 add_executable(listener src/topic/listener.cpp)
