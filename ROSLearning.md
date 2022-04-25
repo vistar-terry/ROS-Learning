@@ -163,9 +163,9 @@ rostopic echo --filter
 rostopic echo -c
 rostopic echo -b
 rostopic echo -p
+rostopic echo -p --nostr
+rostopic echo -p --noarr
 rostopic echo -w
-rostopic echo --nostr
-rostopic echo --noarr
 rostopic echo -n
 ```
 
@@ -300,21 +300,49 @@ rostopic echo -b log_file.bag /topic_name
 
 ##### rostopic echo -p
 
-以 matlab/octave 友好的绘图格式显示消息。不能与 `-c` 一起使用。
+以 matlab/octave 友好的格式显示消息。不能与 `-c` 一起使用。
 
 ```
 rostopic echo -p /topic_name
 ```
 
+![Screenshot from 2022-04-25 22-25-13](img/Screenshot%20from%202022-04-25%2022-25-13.png)
+
+其中，以`%`开头的第一行是标题，按顺序对应每行以 `,` 隔开的变量名。
+
+`rostopic echo -p` 还有两个参数选项，`--nostr ` 和 `--noarr` ，分别代表 `忽略字符串` 和 `忽略数组` 
+
+![Screenshot from 2022-04-25 22-33-24](img/Screenshot%20from%202022-04-25%2022-33-24.png)
+
+使用 `--nostr` 参数选项后，忽略掉了字符串类型的 `frame_id` 和 `data` 。
 
 
 
+##### rostopic echo -w
+
+以固定宽度 `NUM_WIDTH` 打印所有数值，如果 `NUM_WIDTH` 小于实际宽度，则以实际宽度打印。
+
+```bash
+rostopic echo -w NUM_WIDTH /topic_name
+```
+
+![Screenshot from 2022-04-25 23-11-23](img/Screenshot%20from%202022-04-25%2023-11-23.png)
+
+每个数字的宽度为13，实际宽度不足13的，在数字前面补空格。
+
+符合python的 `%` 占位符规则，具体可查询 `python % 占位符` 。
 
 
 
+##### rostopic echo -n
 
+打印接收到的 `COUNT` 条消息并退出。
 
+```bash
+rostopic echo -n COUNT /topic_name
+```
 
+![Screenshot from 2022-04-25 23-16-09](img/Screenshot%20from%202022-04-25%2023-16-09.png)
 
 
 
