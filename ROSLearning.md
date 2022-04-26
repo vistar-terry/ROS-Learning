@@ -356,6 +356,81 @@ rostopic echo -n COUNT /topic_name
 
 
 
+#### 1.2.4 rostopic find
+
+```bash
+rostopic find <msg-type>
+rostopic find rosgraph_msgs/Log
+```
+
+按照 `topic` 的消息类型查找运行的 `topic`。
+
+![Screenshot from 2022-04-26 22-55-28](img/Screenshot%20from%202022-04-26%2022-55-28.png)
+
+
+
+#### 1.2.5 rostopic hz
+
+```
+rostopic hz <topic-name>
+rostopic hz /rosout
+```
+
+显示主题的发布率。默认情况下，报告的速率是 rostopic 运行期间的平均速率。
+
+![Screenshot from 2022-04-26 23-03-31](img/Screenshot%20from%202022-04-26%2023-03-31.png)
+
+和 `rostopic delay` 的打印类似，其中，
+
+`average rate` ：从开始通信到现在，所有通信的平均发布率，单位：Hz
+
+`min`：从开始通信到现在，所有通信中发布周期最小的一次
+
+`max`：从开始通信到现在，所有通信中发布周期最大的一次
+
+`std dev`：从开始通信到现在，所有通信发布周期的标准差，表征发布周期的波动大小，标准差越小表示波动越小。
+
+`window`：从开始通信到现在接收数据的次数，队列限制大小50000。
+
+
+
+`rostopic hz` 的参数选项如下：
+
+```bash
+rostopic hz -w 
+rostopic hz --filter
+```
+
+
+
+##### rostopic hz -w
+
+使用窗口大小（样本数）报告速率，以对速率进行时间局部估计。
+
+如不使用 `-w` 选项，报告的平均速率时从开始通信以来所有通信的平均速率，如使用 `-w` 则为最近 `WINDOW_SIZE` 次通信的平均速率。
+
+```bash
+ rostopic hz -w WINDOW_SIZE /topic_name
+```
+
+![Screenshot from 2022-04-26 23-40-50](img/Screenshot%20from%202022-04-26%2023-40-50.png)
+
+
+
+##### rostopic hz --filter
+
+仅报告指定python语法的逻辑表达式匹配的消息的速率。
+
+逻辑表达式的使用规则同 `rostopic echo --filter`
+
+此选项对性能有很大影响，不应用于高速率主题。
+
+```
+rostopic hz --filter FILTER_EXPR /topic_name
+```
+
+
+
 
 
 http://wiki.ros.org/rostopic
