@@ -429,6 +429,12 @@ rostopic hz --filter
 rostopic hz --filter FILTER_EXPR /topic_name
 ```
 
+![Screenshot from 2022-04-26 23-48-00](img/Screenshot%20from%202022-04-26%2023-48-00.png)
+
+
+
+
+
 
 
 
