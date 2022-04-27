@@ -433,6 +433,33 @@ rostopic hz --filter FILTER_EXPR /topic_name
 
 
 
+#### 1.2.6 rostopic info
+
+```bash
+rostopic info <topic-name>
+rostopic info /rosout
+```
+
+打印 `topic` 的信息
+
+![Screenshot from 2022-04-27 22-16-46](img/Screenshot%20from%202022-04-27%2022-16-46.png)
+
+其中，
+
+Type：是 `topic` 的消息类型
+
+Publishers：是该 `topic` 的发布者节点名，如果是通过 `rostopic` 指令发布，则节点名称就是 `/rostopic_7739_1651069588197` 的命名形式，其中 `7739` 是节点的 `PID`（线程ID），
+
+`1651069588197` 是什么不知道（如果你知道欢迎评论区留言）
+
+Subscribers：是该 `topic` 的订阅者节点名。
+
+`http://Yogo:40683/` 是该节点的网络地址，
+
+![Screenshot from 2022-04-27 23-18-47](img/Screenshot%20from%202022-04-27%2023-18-47.png)
+
+小bug
+
 
 
 
