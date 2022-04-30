@@ -458,7 +458,100 @@ Subscribers：是该 `topic` 的订阅者节点名。
 
 ![Screenshot from 2022-04-27 23-18-47](img/Screenshot%20from%202022-04-27%2023-18-47.png)
 
-小bug
+
+
+#### 1.2.7 rostopic list
+
+列出当前运行的topic
+
+![Screenshot from 2022-04-30 16-35-34](img/Screenshot%20from%202022-04-30%2016-35-34.png)
+
+rostopic的参数选项如下：
+
+```bash
+rostopic list <namespace>    # 列出指定命名空间中的topic
+rostopic list -b <bag_file>  # 列出bag文件中的topic
+rostopic list -p  # 只列出发布者
+rostopic list -s  # 只列出订阅者
+rostopic list -v  # 详细模式
+rostopic list --host  # 按主机名分组列表
+```
+
+
+
+##### rostopic list \<namespace\>
+
+列出指定命名空间中的topic，关于ROS的命名空间，见 [ROS WiKi/Names/Graph Resource Names](http://wiki.ros.org/ROS/Concepts#Names.Names)
+
+```bash
+rostopic list /up
+```
+
+![Screenshot from 2022-04-30 17-15-56](img/Screenshot%20from%202022-04-30%2017-15-56.png)
+
+
+
+##### rostopic list -b <bag_file>
+
+列出bag文件中的topic
+
+```bash
+rostopic list -b all.bag
+```
+
+![Screenshot from 2022-04-30 17-47-31](img/Screenshot%20from%202022-04-30%2017-47-31.png)
+
+
+
+##### rostopic list -p
+
+只列出有发布者的topic
+
+```bash
+rostopic list -p
+```
+
+##### rostopic list -s
+
+只列出有订阅者的topic
+
+```bash
+rostopic list -s
+```
+
+![Screenshot from 2022-04-30 17-54-54](img/Screenshot%20from%202022-04-30%2017-54-54.png)
+
+
+
+##### rostopic list -v
+
+列出所有topic的详细信息
+
+```
+rostopic list -v
+```
+
+![Screenshot from 2022-04-30 17-58-24](img/Screenshot%20from%202022-04-30%2017-58-24.png)
+
+其中包括topic的属性(发布者/订阅者)、topic名、topic消息类型(方括号里的)、该topic发布者/订阅者的数量。
+
+
+
+##### rostopic list --host
+
+按主机名分组列表
+
+```bash
+rostopic list --host
+```
+
+![Screenshot from 2022-04-30 19-58-32](img/Screenshot%20from%202022-04-30%2019-58-32.png)
+
+其中，方括号里是主机名。
+
+
+
+
 
 
 
