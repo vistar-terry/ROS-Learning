@@ -30,8 +30,9 @@ uint32_t getNumSubscribers() const
 // 获取此发布者发布的topic
 std::string getTopic() const
 
-// 此发布者是否被锁定
-// 源码中没有找到锁定发布者的接口
+// 此发布者是否为锁存模式
+// 锁存模式：记录发布的最后一条消息，每有订阅者连接发布一次最后一条消息
+// 通过advertise函数设置
 bool isLatched() const
 ```
 
@@ -548,6 +549,37 @@ rostopic list --host
 ![Screenshot from 2022-04-30 19-58-32](img/Screenshot%20from%202022-04-30%2019-58-32.png)
 
 其中，方括号里是主机名。
+
+
+
+#### 1.2.8 rostopic pub
+
+将数据发布到主题
+
+```bash
+rostopic pub <topic-name> <topic-type> [data...]
+rostopic pub /topic_name std_msgs/String hello
+```
+
+关于topic发布的三种模式：
+
+-   latching mode
+    -   记录发布的最后一条消息，每有订阅者连接，发布一次最后一条消息
+    -   默认为这个模式
+-   once mode
+    -   保持latching模式3秒，然后退出。
+-   rate mode
+    -   可以自定义消息发布的频率
+
+
+
+
+
+
+
+
+
+
 
 
 
