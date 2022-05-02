@@ -6,7 +6,7 @@
 
 https://docs.ros.org/en/api/roscpp/html/classros_1_1Publisher.html#abf12a75cc104239930524fd0059e2153
 
-**ros::Publisher类**
+#### ros::Publisher类
 
 ```c++
 // 两个重载函数模板，用于发布topic消息
@@ -34,6 +34,21 @@ std::string getTopic() const
 // 锁存模式：记录发布的最后一条消息，每有订阅者连接发布一次最后一条消息
 // 通过advertise函数设置
 bool isLatched() const
+```
+
+
+
+#### ros::Subscriber类
+
+```c++
+// 获取与此订阅者关联的发布者的数量
+uint32_t getNumPublishers() const
+
+// 获取此订阅者订阅的topic
+std::string getTopic() const
+
+// 关闭与此订阅者关联的广播
+void shutdown ()
 ```
 
 
@@ -647,6 +662,19 @@ rostopic pub -f FILE <topic-name> <topic-type> [data...]
 ##### rostopic pub -f FILE
 
 通过YAML文件输入
+
+
+
+#### 1.2.9 rostopic type
+
+显示topic的消息类型
+
+```bash
+rostopic type <topic-name>
+rostopic type /topic_name
+```
+
+![Screenshot from 2022-05-02 22-24-45](img/Screenshot%20from%202022-05-02%2022-24-45.png)
 
 
 
