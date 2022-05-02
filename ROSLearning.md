@@ -558,7 +558,7 @@ rostopic list --host
 
 ```bash
 rostopic pub <topic-name> <topic-type> [data...]
-rostopic pub /topic_name std_msgs/String hello
+rostopic pub /topic_name std_msgs/String "hello"
 ```
 
 关于topic发布的三种模式：
@@ -569,19 +569,84 @@ rostopic pub /topic_name std_msgs/String hello
 -   once mode
     -   保持latching模式3秒，然后退出。
 -   rate mode
-    -   可以自定义消息发布的频率
+    -   可以自定义消息的发布频率
 
 
 
+关于topic发布消息的数据源：
+
+-   命令行参数（最常用的方法）
+
+    ```bash
+    rostopic pub /topic_name std_msgs/String "hello"
+    ```
+
+-   管道输入
+
+    ```bash
+    rostopic echo /chatter | rostopic pub /bar std_msgs/String
+    ```
+
+    这个没发现有什么好用的场景，就是把`/chatter`的消息内容转发给`/bar`了。
+
+-   通过YAML文件输入
+
+    首先要有一个存有msg的文件，可以重定向topic内容：
+
+    ```bash
+    rostopic echo /chatter > chatter.bagy
+    ```
+
+    然后使用`-f`参数选项将文件内容输入到topic
+
+    ```bash
+    rostopic pub -f chatter.bagy /bar std_msgs/String
+    ```
+
+​		关于YAML格式在ROS中的使用，见 [YAML on the ROS command line](http://wiki.ros.org/ROS/YAMLCommandLine)
 
 
 
+参数选项：
+
+```bash
+rostopic pub -l <topic-name> <topic-type> [data...]
+rostopic pub --latch <topic-name> <topic-type> [data...]
+rostopic pub -r RATE <topic-name> <topic-type> [data...]
+rostopic pub -1 <topic-name> <topic-type> [data...]
+rostopic pub --once <topic-name> <topic-type> [data...]
+rostopic pub -f FILE <topic-name> <topic-type> [data...]
+```
+
+##### rostopic pub -l/--latch
+
+`-l`和`--latch`是一样的，代表`latching mode`
+
+![Screenshot from 2022-05-02 22-00-02](img/Screenshot%20from%202022-05-02%2022-00-02.png)
+
+发布者发布一次消息，并将最后一条消息保存等待，直到有新的订阅者连接，把保存的消息发给新的订阅者（每个新订阅者收到的都是这条保存的消息）
 
 
 
+##### rostopic pub -r RATE
+
+`rate mode`，`RATE`的单位是`Hz`。
+
+![Screenshot from 2022-05-02 22-00-53](img/Screenshot%20from%202022-05-02%2022-00-53.png)
+
+发布者按`10Hz`的频率不停发布消息，订阅者一直接收消息。
 
 
 
+##### rostopic pub -1/--once
+
+`-1`(注意是数字1) 和 `--once` 是一样的，代表`once mode`
+
+
+
+##### rostopic pub -f FILE
+
+通过YAML文件输入
 
 
 

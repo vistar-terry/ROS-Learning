@@ -6,7 +6,8 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "offset");
 
     ros::NodeHandle n;
-    ros::Publisher chatter_pub = n.advertise<mbot_communication::HeaderString>("/offset", 1000);
+    ros::Publisher chatter_pub = n.advertise<mbot_communication::HeaderString>("/up/offset", 1000);
+    ros::Publisher chatter_pub1 = n.advertise<mbot_communication::HeaderString>("/up/pose", 1000);
 
     ros::Rate loop_rate(5);
 
@@ -21,6 +22,7 @@ int main(int argc, char **argv)
         msg.data = ss.str();
 
         chatter_pub.publish(msg);
+        chatter_pub1.publish(msg);
 
         ROS_INFO("sec: %d, nsec: %d, data: %s", msg.header.stamp.sec, msg.header.stamp.nsec, msg.data.c_str());
 
