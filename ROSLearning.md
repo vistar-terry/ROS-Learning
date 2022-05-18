@@ -676,13 +676,117 @@ rostopic type /topic_name
 
 ![Screenshot from 2022-05-02 22-24-45](img/Screenshot%20from%202022-05-02%2022-24-45.png)
 
-
-
-
-
-
-
-
-
 http://wiki.ros.org/rostopic
+
+
+
+
+
+## 一、Service
+
+### 2.1 常用函数接口
+
+#### ros::ServiceClient类
+
+```c++
+// 四个重载函数模板，用于调用服务
+// 使用指定的服务类型调用服务
+template<class Service>
+bool call(Service &service)
+
+// 使用指定的请求/响应消息类型调用服务
+template<class MReq, class MRes>
+bool call(MReq &req, MRes &res)
+
+// 多用于内部调用，以上两个函数最终均调用到该函数
+template<typename MReq , typename MRes>
+bool call(const MReq &req, MRes &resp, const std::string &service_md5sum)
+ 
+bool call(const SerializedMessage &req, SerializedMessage &resp, const std::string &service_md5sum)
+
+// 返回此句柄是否有效。对于持续性服务，当连接断开时，这将变为false。非持续性服务句柄始终有效。
+bool isValid() const;
+
+// 返回此句柄是否是持续性服务
+bool isPersistent() const;
+
+// 等待此服务发布并可用。
+bool waitForExistence(ros::Duration timeout = ros::Duration(-1));
+
+// 检查该服务是否已发布并可用。
+bool exists();
+    
+// 返回此ServiceClient连接到的服务的名称。
+std::string getService();
+
+// 关闭与此ServiceClient关联的连接
+void shutdown();
+```
+
+
+
+#### ros::ServiceServer类
+
+```c++
+// 返回此ServiceServer发布的服务的名称。
+std::string getService();
+
+// 取消发布与此ServiceServer关联的服务
+void shutdown();
+```
+
+
+
+### 2.2 常用命令行工具
+
+rosservice相关
+
+```bash
+rosservice call   使用提供的参数调用服务
+rosservice find   通过服务消息类型查找服务
+rosservice info   打印服务相关信息
+rosservice list   列出活跃的服务
+rosservice type   打印指定服务的消息类型
+rosservice uri    打印服务的ROSRPC uri
+```
+
+
+
+
+
+
+
+
+
+
+
+http://wiki.ros.org/rosservice?distro=noetic
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
