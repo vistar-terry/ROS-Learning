@@ -742,6 +742,7 @@ void shutdown();
 rosservice相关
 
 ```bash
+rosservice args   打印服务的参数列表
 rosservice call   使用提供的参数调用服务
 rosservice find   通过服务消息类型查找服务
 rosservice info   打印服务相关信息
@@ -749,6 +750,52 @@ rosservice list   列出活跃的服务
 rosservice type   打印指定服务的消息类型
 rosservice uri    打印服务的ROSRPC uri
 ```
+
+
+
+#### 2.2.1 rosservice args
+
+```bash
+rosservice args <service-name>
+rosservice args /service_name
+```
+
+打印服务的参数列表，没有参数则没有打印
+
+![Screenshot from 2022-06-03 15-21-02](img/Screenshot%20from%202022-06-03%2015-21-02.png)
+
+
+
+#### 2.2.2 rosservice call
+
+```bash
+rosservice call <service-name> [service-args]
+rosservice call /service_name service-args
+```
+
+使用提供的参数调用服务
+
+![Screenshot from 2022-06-03 15-33-22](img/Screenshot%20from%202022-06-03%2015-33-22.png)
+
+可以在服务名后直接跟参数列表，也可以使用字典的格式（键入服务名后，按tab自动补全，默认是这种格式）。
+
+
+
+```bash
+参数选项：--wait
+```
+
+等待服务发布才调用
+
+![Screenshot from 2022-06-03 15-45-23](img/Screenshot%20from%202022-06-03%2015-45-23.png)
+
+如果服务没有发布，直接调用，会返回错误，使用 `--wait` 选项后，会一直等待服务发布才调用。
+
+
+
+#### 2.2.3 rosservice find
+
+
 
 
 
