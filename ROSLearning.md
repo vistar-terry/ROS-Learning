@@ -795,9 +795,14 @@ rosservice call /service_name service-args
 
 #### 2.2.3 rosservice find
 
+```bash
+rosservice find <service-type>
+rosservice find rospy_tutorials/AddTwoInts
+```
 
+按照特定的消息类型查找已发布的 `service`。
 
-
+![Screenshot from 2022-06-03 21-42-12](img/Screenshot%20from%202022-06-03%2021-42-12.png)
 
 
 
