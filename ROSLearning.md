@@ -682,7 +682,7 @@ http://wiki.ros.org/rostopic
 
 
 
-## 一、Service
+## 二、Service
 
 ### 2.1 常用函数接口
 
@@ -742,31 +742,19 @@ void shutdown();
 rosservice相关
 
 ```bash
-rosservice args   打印服务的参数列表
 rosservice call   使用提供的参数调用服务
 rosservice find   通过服务消息类型查找服务
-rosservice info   打印服务相关信息
 rosservice list   列出活跃的服务
-rosservice type   打印指定服务的消息类型
+rosservice node   打印服务的node名称
 rosservice uri    打印服务的ROSRPC uri
+rosservice type   打印指定服务的消息类型
+rosservice args   打印服务的参数列表
+rosservice info   打印服务相关信息
 ```
 
 
 
-#### 2.2.1 rosservice args
-
-```bash
-rosservice args <service-name>
-rosservice args /service_name
-```
-
-打印服务的参数列表，没有参数则没有打印
-
-![Screenshot from 2022-06-03 15-21-02](img/Screenshot%20from%202022-06-03%2015-21-02.png)
-
-
-
-#### 2.2.2 rosservice call
+#### 2.2.1 rosservice call
 
 ```bash
 rosservice call <service-name> [service-args]
@@ -793,7 +781,7 @@ rosservice call /service_name service-args
 
 
 
-#### 2.2.3 rosservice find
+#### 2.2.2 rosservice find
 
 ```bash
 rosservice find <service-type>
@@ -803,6 +791,129 @@ rosservice find rospy_tutorials/AddTwoInts
 按照特定的消息类型查找已发布的 `service`。
 
 ![Screenshot from 2022-06-03 21-42-12](img/Screenshot%20from%202022-06-03%2021-42-12.png)
+
+
+
+#### 2.2.3 rosservice list
+
+```bash
+rosservice list
+```
+
+列出当前所有活跃的service
+
+![Screenshot from 2022-06-05 13-58-20](img/Screenshot%20from%202022-06-05%2013-58-20.png)
+
+
+
+```bash
+rosservice list <namespace>
+```
+
+列出指定名空间下当前所有活跃的service
+
+![Screenshot from 2022-06-05 14-00-43](img/Screenshot%20from%202022-06-05%2014-00-43-16544089031571.png)
+
+
+
+```bash
+-n选项：同时打印服务所在节点的名称
+rosservice list -n
+rosservice list <namespace> -n
+```
+
+![Screenshot from 2022-06-05 14-05-27](img/Screenshot%20from%202022-06-05%2014-05-27.png)
+
+前面是服务名，后面是节点名。
+
+
+
+#### 2.2.4 rosservice node
+
+```bash
+rosservice node <service-name>
+rosservice node /add_two_ints 
+```
+
+![Screenshot from 2022-06-05 14-30-44](img/Screenshot%20from%202022-06-05%2014-30-44.png)
+
+
+
+#### 2.2.5 rosservice uri
+
+```bash
+rosservice uri <service-name>
+rosservice uri /add_two_ints 
+```
+
+打印服务的ROSRPC uri
+
+![Screenshot from 2022-06-05 14-25-09](img/Screenshot%20from%202022-06-05%2014-25-09.png)
+
+
+
+
+#### 2.2.6 rosservice type
+
+```bash
+rosservice type <service-name>
+rosservice type /add_two_ints 
+```
+
+打印指定service的消息类型
+
+![Screenshot from 2022-06-05 14-21-10](img/Screenshot%20from%202022-06-05%2014-21-10.png)
+
+
+
+#### 2.2.7 rosservice args
+
+```bash
+rosservice args <service-name>
+rosservice args /service_name
+```
+
+打印服务的参数列表，没有参数则没有打印
+
+![Screenshot from 2022-06-03 15-21-02](img/Screenshot%20from%202022-06-03%2015-21-02.png)
+
+
+
+#### 2.2.8 rosservice info
+
+```bash
+rosservice info <service-name>
+rosservice info /rosout
+```
+
+打印指定service的信息，相当于 `rosservice node`、`rosservice uri`、`rosservice type`、`rosservice args` 的集合。
+
+![Screenshot from 2022-06-05 13-19-09](img/Screenshot%20from%202022-06-05%2013-19-09.png)
+
+其中，
+
+Node：是service所在节点的名称。
+
+URI：是service的ROSRPC地址。
+
+Type：是service的消息类型。
+
+Args：是service的参数列表。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -842,3 +953,4 @@ http://wiki.ros.org/rosservice?distro=noetic
 
 
 
+ 
