@@ -1,10 +1,10 @@
 # ROSLearning
 
+
+
 ## 一、Topic
 
 ### 1.1 常用函数接口
-
-https://docs.ros.org/en/api/roscpp/html/classros_1_1Publisher.html#abf12a75cc104239930524fd0059e2153
 
 #### ros::Publisher类
 
@@ -676,8 +676,6 @@ rostopic type /topic_name
 
 ![Screenshot from 2022-05-02 22-24-45](img/Screenshot%20from%202022-05-02%2022-24-45.png)
 
-http://wiki.ros.org/rostopic
-
 
 
 
@@ -912,17 +910,6 @@ Args：是service的参数列表。
 
 
 
-
-
-
-
-
-
-
-
-
-
-http://wiki.ros.org/rosservice?distro=noetic
 
 
 
