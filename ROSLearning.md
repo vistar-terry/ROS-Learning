@@ -55,7 +55,7 @@ void shutdown ()
 
 ### 1.2 常用命令行工具
 
-rostopic相关
+#### rostopic相关
 
 ```bash
 rostopic bw    显示主题使用的带宽
@@ -71,7 +71,7 @@ rostopic type  打印主题类型
 
 
 
-#### 1.2.1 rostopic bw
+##### 1.2.1 rostopic bw
 
 ```bash
 rostopic bw <topic-name>
@@ -102,7 +102,7 @@ rostopic bw /rosout
 
 
 
-#### 1.2.2 rostopic delay
+##### 1.2.2 rostopic delay
 
 ```
 rostopic delay <topic-name>
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
 
 
-#### 1.2.3 rostopic echo
+##### 1.2.3 rostopic echo
 
 ```bash
 rostopic echo <topic-name>
@@ -187,7 +187,7 @@ rostopic echo -n
 
 
 
-##### rostopic echo --offset
+###### rostopic echo --offset
 
 在打印的消息中显示advertiser发布时间与subscriber接收时间的偏移量，和`delay`一样，topic要有header，否则打印中没有时间戳。
 
@@ -257,7 +257,7 @@ stamp是时间戳，这里是advertiser发布时间与subscriber接收时间的�
 
 
 
-##### rostopic echo --filter
+###### rostopic echo --filter
 
 显示与指定python语法的逻辑表达式匹配的消息
 
@@ -286,7 +286,7 @@ rostopic echo --filter "m.data=='foo'"  /topic_name
 
 
 
-##### rostopic echo -c
+###### rostopic echo -c
 
 打印每条消息前清除屏幕，不能与 `-p` 一起使用。
 
@@ -296,7 +296,7 @@ rostopic echo -c /topic_name
 
 
 
-##### rostopic echo -b
+###### rostopic echo -b
 
 显示bag文件中录制的topic
 
@@ -324,7 +324,7 @@ rostopic echo -b log_file.bag /topic_name
 
 
 
-##### rostopic echo -p
+###### rostopic echo -p
 
 以 matlab/octave 友好的格式显示消息。不能与 `-c` 一起使用。
 
@@ -344,7 +344,7 @@ rostopic echo -p /topic_name
 
 
 
-##### rostopic echo -w
+###### rostopic echo -w
 
 以固定宽度 `NUM_WIDTH` 打印所有数值，如果 `NUM_WIDTH` 小于实际宽度，则以实际宽度打印。
 
@@ -360,7 +360,7 @@ rostopic echo -w NUM_WIDTH /topic_name
 
 
 
-##### rostopic echo -n
+###### rostopic echo -n
 
 打印接收到的 `COUNT` 条消息并退出。
 
@@ -372,7 +372,7 @@ rostopic echo -n COUNT /topic_name
 
 
 
-#### 1.2.4 rostopic find
+##### 1.2.4 rostopic find
 
 ```bash
 rostopic find <msg-type>
@@ -385,7 +385,7 @@ rostopic find rosgraph_msgs/Log
 
 
 
-#### 1.2.5 rostopic hz
+##### 1.2.5 rostopic hz
 
 ```
 rostopic hz <topic-name>
@@ -419,7 +419,7 @@ rostopic hz --filter
 
 
 
-##### rostopic hz -w
+###### rostopic hz -w
 
 使用窗口大小（样本数）报告速率，以对速率进行时间局部估计。
 
@@ -433,7 +433,7 @@ rostopic hz --filter
 
 
 
-##### rostopic hz --filter
+###### rostopic hz --filter
 
 仅报告指定python语法的逻辑表达式匹配的消息的速率。
 
@@ -449,7 +449,7 @@ rostopic hz --filter FILTER_EXPR /topic_name
 
 
 
-#### 1.2.6 rostopic info
+##### 1.2.6 rostopic info
 
 ```bash
 rostopic info <topic-name>
@@ -476,7 +476,7 @@ Subscribers：是该 `topic` 的订阅者节点名。
 
 
 
-#### 1.2.7 rostopic list
+##### 1.2.7 rostopic list
 
 列出当前运行的topic
 
@@ -495,7 +495,7 @@ rostopic list --host  # 按主机名分组列表
 
 
 
-##### rostopic list \<namespace\>
+###### rostopic list \<namespace\>
 
 列出指定命名空间中的topic，关于ROS的命名空间，见 [ROS WiKi/Names/Graph Resource Names](http://wiki.ros.org/ROS/Concepts#Names.Names)
 
@@ -507,7 +507,7 @@ rostopic list /up
 
 
 
-##### rostopic list -b <bag_file>
+###### rostopic list -b <bag_file>
 
 列出bag文件中的topic
 
@@ -519,7 +519,7 @@ rostopic list -b all.bag
 
 
 
-##### rostopic list -p
+###### rostopic list -p
 
 只列出有发布者的topic
 
@@ -527,7 +527,7 @@ rostopic list -b all.bag
 rostopic list -p
 ```
 
-##### rostopic list -s
+###### rostopic list -s
 
 只列出有订阅者的topic
 
@@ -539,7 +539,7 @@ rostopic list -s
 
 
 
-##### rostopic list -v
+###### rostopic list -v
 
 列出所有topic的详细信息
 
@@ -553,7 +553,7 @@ rostopic list -v
 
 
 
-##### rostopic list --host
+###### rostopic list --host
 
 按主机名分组列表
 
@@ -567,7 +567,7 @@ rostopic list --host
 
 
 
-#### 1.2.8 rostopic pub
+##### 1.2.8 rostopic pub
 
 将数据发布到主题
 
@@ -633,7 +633,7 @@ rostopic pub --once <topic-name> <topic-type> [data...]
 rostopic pub -f FILE <topic-name> <topic-type> [data...]
 ```
 
-##### rostopic pub -l/--latch
+###### rostopic pub -l/--latch
 
 `-l`和`--latch`是一样的，代表`latching mode`
 
@@ -643,7 +643,7 @@ rostopic pub -f FILE <topic-name> <topic-type> [data...]
 
 
 
-##### rostopic pub -r RATE
+###### rostopic pub -r RATE
 
 `rate mode`，`RATE`的单位是`Hz`。
 
@@ -653,19 +653,19 @@ rostopic pub -f FILE <topic-name> <topic-type> [data...]
 
 
 
-##### rostopic pub -1/--once
+###### rostopic pub -1/--once
 
 `-1`(注意是数字1) 和 `--once` 是一样的，代表`once mode`
 
 
 
-##### rostopic pub -f FILE
+###### rostopic pub -f FILE
 
 通过YAML文件输入
 
 
 
-#### 1.2.9 rostopic type
+##### 1.2.9 rostopic type
 
 显示topic的消息类型
 
@@ -675,6 +675,14 @@ rostopic type /topic_name
 ```
 
 ![Screenshot from 2022-05-02 22-24-45](img/Screenshot%20from%202022-05-02%2022-24-45.png)
+
+
+
+#### rosmsg 相关
+
+
+
+
 
 
 
