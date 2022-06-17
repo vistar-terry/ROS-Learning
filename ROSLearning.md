@@ -680,11 +680,106 @@ rostopic type /topic_name
 
 #### rosmsg 相关
 
+```bash
+rosmsg show 显示消息格式内容
+rosmsg list 显示消息列表
+rosmsg package 显示指定包中的所有消息列表
+rosmsg packages 显示所有带有消息的包的列表
+rosmsg md5 显示指定消息类型的 md5 总和
+```
 
 
 
+##### 1.2.10 rosmsg show
+
+```bash
+rosmsg show <message type>
+rosmsg show std_msgs/String
+```
+
+显示 ROS 消息类型中的字段。
+
+![Screenshot from 2022-06-12 20-03-27](img/Screenshot%20from%202022-06-12%2020-03-27.png)
+
+如果不知道包名称，也可以只写消息类型，该命令会在所有包中匹配：
+
+![Screenshot from 2022-06-12 20-11-50](img/Screenshot%20from%202022-06-12%2020-11-50.png)
+
+**-r 选项**
+
+显示消息原始文件中的所有内容，包括注释。
+
+```bash
+rosmsg show -r <message-type>
+```
+
+![Screenshot from 2022-06-12 20-21-41](img/Screenshot%20from%202022-06-12%2020-21-41.png)
+
+##### 1.2.11 rosmsg list
+
+显示所有消息列表
+
+```
+rosmsg list
+```
+
+![Screenshot from 2022-06-12 20-43-54](img/Screenshot%20from%202022-06-12%2020-43-54.png)
+
+##### 1.2.12 rosmsg package
+
+显示指定包中的所有消息列表
+
+```bash
+rosmsg package <package-name> 
+rosmsg package mbot_communication
+```
+
+![Screenshot from 2022-06-17 22-15-15](img/Screenshot%20from%202022-06-17%2022-15-15.png)
+
+-r选项
+
+将消息列表显示在一行
+
+```bash
+rosmsg package mbot_communication -s
+```
+
+![Screenshot from 2022-06-17 22-31-28](img/Screenshot%20from%202022-06-17%2022-31-28.png)
 
 
+
+##### 1.2.13 rosmsg packages
+
+显示所有带有消息的包的列表。
+
+```bash
+rosmsg packages
+```
+
+![Screenshot from 2022-06-17 22-36-42](img/Screenshot%20from%202022-06-17%2022-36-42.png)
+
+-r选项
+
+将包列表显示在一行
+
+```bash
+rosmsg packages -s
+```
+
+![Screenshot from 2022-06-17 22-42-26](img/Screenshot%20from%202022-06-17%2022-42-26.png)
+
+
+
+##### 1.2.14 rosmsg md5
+
+显示指定消息类型的 md5 总和。如果编译的版本不匹配，会发出警告。
+
+```bash
+rosmsg md5 <message-type>
+rosmsg md5 String
+```
+
+![Screenshot from 2022-06-17 22-50-49](img/Screenshot%20from%202022-06-17%2022-50-49.png)
 
 
 
@@ -906,6 +1001,18 @@ Type：是service的消息类型。
 Args：是service的参数列表。
 
 
+
+#### rossrv 相关
+
+rossrv和rosmsg的用法完全相同，具体对照rosmsg
+
+```bash
+rossrv show 显示服务格式内容
+rossrv list 显示服务列表
+rossrv package 显示指定包中的所有服务列表
+rossrv packages 显示所有带有服务的包的列表
+rossrv md5 显示指定服务类型的 md5 总和
+```
 
 
 
