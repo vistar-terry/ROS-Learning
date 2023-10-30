@@ -399,6 +399,425 @@ catkin_make
 
 
 
+## 1.4 ROS架构
+
+立足不同的角度，对ROS架构的描述也是不同的，一般我们可以从设计者、维护者、系统结构与自身结构4个角度来描述ROS结构:
+
+#### 1. 设计者
+
+ROS设计者将ROS表述为 `ROS = Plumbing + Tools + Capabilities + Ecosystem`
+
+- Plumbing：**通讯机制(实现ROS不同节点之间的交互)**
+- Tools：**工具软件包(ROS中的开发和调试工具)**
+- Capabilities：机器人高层技能(ROS中某些功能的集合，比如：导航)
+- Ecosystem：机器人生态系统(跨地域、跨软件与硬件的ROS联盟)
+
+#### 2. 维护者
+
+立足**维护者**的角度: ROS 架构可划分为两大部分
+
+- main：核心部分，主要由Willow Garage 和一些开发者设计、提供以及维护。它提供了一些分布式计算的基本工具，以及整个ROS的核心部分的程序编写。
+- universe：全球范围的代码，有不同国家的ROS社区组织开发和维护。一种是库的代码，如OpenCV、PCL等；库的上一层是从功能角度提供的代码，如人脸识别，他们调用下层的库；最上层的代码是应用级的代码，让机器人完成某一确定的功能。
+
+#### 3. 系统架构
+
+立足系统架构: ROS 可以划分为三层
+
+- OS 层，也即经典意义的操作系统
+
+    ROS 只是元操作系统，需要依托真正意义的操作系统，目前兼容性最好的是 Linux 的 Ubuntu，Mac、Windows 也支持 ROS 的较新版本
+
+- 中间层
+
+    是 ROS 封装的关于机器人开发的中间件，比如:
+
+    - 基于 TCP/UDP 继续封装的 TCPROS/UDPROS 通信系统
+    - 用于进程间通信 Nodelet，为数据的实时性传输提供支持
+    - 另外，还提供了大量的机器人开发实现库，如：数据类型定义、坐标变换、运动控制....
+
+- 应用层
+
+    功能包，以及功能包内的节点，比如: master、turtlesim的控制与运动节点...
+
+#### 4. 自身结构
+
+就 ROS 自身实现而言，也可以划分为三层：
+
+- 文件系统
+
+    ROS文件系统级指的是在硬盘上面查看的ROS源代码的组织形式
+
+- 计算图
+
+    ROS 分布式系统中不同进程需要进行数据交互，计算图可以以点对点的网络形式表现数据交互过程，计算图中的重要概念: 节点(Node)、消息(message)、通信机制主题(topic)、通信机制服务(service)
+
+- 开源社区
+
+    ROS的社区级概念是ROS网络上进行代码发布的一种表现形式
+
+    - 发行版（Distribution）　ROS发行版是可以独立安装、带有版本号的一系列综合功能包。ROS发行版像Linux发行版一样发挥类似的作用。这使得ROS软件安装更加容易，而且能够通过一个软件集合维持一致的版本。
+    - 软件库（Repository）　ROS依赖于共享开源代码与软件库的网站或主机服务，在这里不同的机构能够发布和分享各自的机器人软件与程序。
+    - ROS维基（ROS Wiki）　ROS Wiki是用于记录有关ROS系统信息的主要论坛。任何人都可以注册账户、贡献自己的文件、提供更正或更新、编写教程以及其他行为。网址是http://wiki.ros.org/。
+    - Bug提交系统（Bug Ticket System）如果你发现问题或者想提出一个新功能，ROS提供这个资源去做这些。
+    - 邮件列表（Mailing list）　ROS用户邮件列表是关于ROS的主要交流渠道，能够像论坛一样交流从ROS软件更新到ROS软件使用中的各种疑问或信息。网址是http://lists.ros.org/。
+    - ROS问答（ROS Answer）用户可以使用这个资源去提问题。网址是https://answers.ros.org/questions/。
+    - 博客（Blog）你可以看到定期更新、照片和新闻。网址是https://www.ros.org/news/，不过博客系统已经退休，ROS社区取而代之，网址是https://discourse.ros.org/。
+
+
+
+## 1.4.1 ROS文件系统
+
+ROS文件系统级指的是ROS源代码在硬盘上的组织形式，其结构大致可以如下图所示：
+
+![img](img/文件系统.png)
+
+其中：
+
+```bash
+catkin workspace 工作空间
+├── build：编译空间，用于存放CMake和catkin的缓存信息、配置信息和其他中间文件。
+├── devel：开发空间，用于存放编译后生成的目标文件，包括头文件、动态&静态链接库、可执行文件等。
+└── src：源码
+    ├── CMakeList.txt：编译的基本配置
+    ├── package1：功能包(ROS基本单元)包含多个节点、库与配置文件
+    └── package2
+        ├── CMakeList.txt：配置编译规则，比如源文件、依赖项、目标文件
+        ├── package.xml：包信息，如:包名、版本、作者、依赖项等(ROS旧版本是manifest.xml)
+        ├── scripts：脚本文件
+        ├── msg：消息通信格式文件
+        ├── srv：服务通信格式文件
+        ├── include：头文件
+        ├── src：C++源文件
+        ├── launch：启动文件
+        ├── action：动作格式文件
+        └── config：参数配置文件
+```
+
+
+
+#### 1.4.1.1 package.xml 内容说明
+
+该文件基于XML语言，XML指可扩展标记语言（e**X**tensible **M**arkup **L**anguage），被设计用来传输和存储数据。
+
+该文件定义有关软件包的属性信息，如：软件包名称、版本号、作者、维护者以及对其他catkin软件包的依赖性。请注意，该概念类似于旧版ROS的 `rosbuild` 构建系统中使用的 `manifest.xml` 文件。
+
+```xml
+<!-- xml声明：文档符合xml1.0规范 -->
+<?xml version="1.0"?>
+<!-- 格式: 以前是 1，推荐使用格式 2 -->
+<package format="2">
+    <!-- 包名 -->
+    <name>hello_world</name>
+    <!-- 包版本 -->
+    <version>0.0.0</version>
+    <!-- 描述信息 -->
+    <description>The hello_world package</description>
+  
+    <!-- One maintainer tag required, multiple allowed, one person per tag -->
+    <!-- Example:  -->
+    <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+    <!-- 维护人员 -->
+    <maintainer email="vistar@todo.todo">vistar</maintainer>
+  
+  
+    <!-- One license tag required, multiple allowed, one license per tag -->
+    <!-- Commonly used license strings: -->
+    <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+    <!-- 许可证信息，ROS核心组件默认 BSD -->
+    <license>TODO</license>
+  
+  
+    <!-- Url tags are optional, but multiple are allowed, one per tag -->
+    <!-- Optional attribute type can be: website, bugtracker, or repository -->
+    <!-- Example: -->
+    <!-- <url type="website">http://wiki.ros.org/hello_world</url> -->
+  
+  
+    <!-- Author tags are optional, multiple are allowed, one per tag -->
+    <!-- Authors do not have to be maintainers, but could be -->
+    <!-- Example: -->
+    <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+  
+  
+    <!-- The *depend tags are used to specify dependencies -->
+    <!-- Dependencies can be catkin packages or system dependencies -->
+    <!-- Examples: -->
+    <!-- Use depend as a shortcut for packages that are both build and exec dependencies -->
+    <!--   <depend>roscpp</depend> -->
+    <!--   Note that this is equivalent to the following: -->
+    <!--   <build_depend>roscpp</build_depend> -->
+    <!--   <exec_depend>roscpp</exec_depend> -->
+    <!-- Use build_depend for packages you need at compile time: -->
+    <!--   <build_depend>message_generation</build_depend> -->
+    <!-- Use build_export_depend for packages you need in order to build against this package: -->
+    <!--   <build_export_depend>message_generation</build_export_depend> -->
+    <!-- Use buildtool_depend for build tool packages: -->
+    <!--   <buildtool_depend>catkin</buildtool_depend> -->
+    <!-- Use exec_depend for packages you need at runtime: -->
+    <!--   <exec_depend>message_runtime</exec_depend> -->
+    <!-- Use test_depend for packages you need only for testing: -->
+    <!--   <test_depend>gtest</test_depend> -->
+    <!-- Use doc_depend for packages you need only for building documentation: -->
+    <!--   <doc_depend>doxygen</doc_depend> -->
+    <!-- 构建工具，这是必须的 -->
+    <buildtool_depend>catkin</buildtool_depend>
+    
+    <!-- 指定此软件包依赖的其他软件包 -->
+    <build_depend>roscpp</build_depend>
+    <build_depend>rospy</build_depend>
+    <build_depend>std_msgs</build_depend>
+    
+    <!-- 指定根据这个包构建成库所依赖的其他包 -->
+    <build_export_depend>roscpp</build_export_depend>
+    <build_export_depend>rospy</build_export_depend>
+    <build_export_depend>std_msgs</build_export_depend>
+    
+    <!-- 指定运行该软件包所依赖的其他包 -->  
+    <exec_depend>roscpp</exec_depend>
+    <exec_depend>rospy</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+  
+  
+    <!-- The export tag contains other, unspecified, tags -->
+    <export>
+      <!-- Other tools can request additional information be placed here -->
+  
+    </export>
+</package>
+
+```
+
+#### 1.4.1.2 CMakelists.txt 内容说明
+
+该文件基于CMake语言，CMake是一个跨平台的编译工具，可以用简单的语句来描述所有平台的编译过程。
+
+```cmake
+# 所需 cmake 的最小版本
+cmake_minimum_required(VERSION 3.0.2)
+# 工程名称，隐式定义 ${PROJECT_NAME} 
+project(hello_world)
+
+## Compile as C++11, supported in ROS Kinetic and newer
+# add_compile_options(-std=c++11)
+
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+# 设置构建所需要的软件包
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+)
+
+## System dependencies are found with CMake's conventions
+# find_package(Boost REQUIRED COMPONENTS system)
+
+
+## Uncomment this if the package has a setup.py. This macro ensures
+## modules and global scripts declared therein get installed
+## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
+# 启动 python 模块支持
+# catkin_python_setup()
+
+################################################
+## Declare ROS messages, services and actions ##
+## 设置 ROS 消息、服务、动作等
+################################################
+
+## To declare and build messages, services or actions from within this
+## package, follow these steps:
+## * Let MSG_DEP_SET be the set of packages whose message types you use in
+##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
+## * In the file package.xml:
+##   * add a build_depend tag for "message_generation"
+##   * add a build_depend and a exec_depend tag for each package in MSG_DEP_SET
+##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
+##     but can be declared for certainty nonetheless:
+##     * add a exec_depend tag for "message_runtime"
+## * In this file (CMakeLists.txt):
+##   * add "message_generation" and every package in MSG_DEP_SET to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * add "message_runtime" and every package in MSG_DEP_SET to
+##     catkin_package(CATKIN_DEPENDS ...)
+##   * uncomment the add_*_files sections below as needed
+##     and list every .msg/.srv/.action file to be processed
+##   * uncomment the generate_messages entry below
+##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
+
+## Generate messages in the 'msg' folder
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
+
+## Generate services in the 'srv' folder
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
+
+## Generate actions in the 'action' folder
+# add_action_files(
+#   FILES
+#   Action1.action
+#   Action2.action
+# )
+
+## Generate added messages and services with any dependencies listed here
+# 生成消息、服务的依赖包
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+# )
+
+################################################
+## Declare ROS dynamic reconfigure parameters ##
+## 声明 ROS 动态参数配置
+################################################
+
+## To declare and build dynamic reconfigure parameters within this
+## package, follow these steps:
+## * In the file package.xml:
+##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
+## * In this file (CMakeLists.txt):
+##   * add "dynamic_reconfigure" to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * uncomment the "generate_dynamic_reconfigure_options" section below
+##     and list every .cfg file to be processed
+
+## Generate dynamic reconfigure parameters in the 'cfg' folder
+# generate_dynamic_reconfigure_options(
+#   cfg/DynReconf1.cfg
+#   cfg/DynReconf2.cfg
+# )
+
+###################################
+## catkin specific configuration ##
+## catkin 特定配置
+###################################
+## The catkin_package macro generates cmake config files for your package
+## Declare things to be passed to dependent projects
+## INCLUDE_DIRS: uncomment this if your package contains header files
+## LIBRARIES: libraries you create in this project that dependent projects also need
+## CATKIN_DEPENDS: catkin_packages dependent projects also need
+## DEPENDS: system dependencies of this project that dependent projects also need
+# 运行时依赖
+catkin_package(
+#  INCLUDE_DIRS include
+#  LIBRARIES hello_world
+#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  DEPENDS system_lib
+)
+
+###########
+## Build ##
+###########
+
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+# 添加头文件路径，注意当前程序包的头文件路径要位于其他文件路径之前
+include_directories(
+# include
+  ${catkin_INCLUDE_DIRS}
+)
+
+## Declare a C++ library
+# 声明 C++ 库
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/hello_world.cpp
+# )
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+# 添加库的目标依赖
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+# 生成可执行文件
+add_executable(${PROJECT_NAME}_node src/hello_world.cpp)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# 重命名c++可执行文件
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+# 添加可执行文件的目标依赖
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+# 指定库、可执行文件的链接库
+target_link_libraries(${PROJECT_NAME}_node
+  ${catkin_LIBRARIES}
+)
+
+#############
+## Install ##
+#############
+
+# all install targets should use catkin DESTINATION variables
+# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
+
+## Mark executable scripts (Python etc.) for installation
+## in contrast to setup.py, you can choose the destination
+# 设置用于安装的可执行脚本
+catkin_install_python(PROGRAMS
+  scripts/hello_world.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+## Mark executables for installation
+## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
+# install(TARGETS ${PROJECT_NAME}_node
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+
+## Mark libraries for installation
+## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
+# install(TARGETS ${PROJECT_NAME}
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+# )
+
+## Mark cpp header files for installation
+# install(DIRECTORY include/${PROJECT_NAME}/
+#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#   FILES_MATCHING PATTERN "*.h"
+#   PATTERN ".svn" EXCLUDE
+# )
+
+## Mark other files for installation (e.g. launch and bag files, etc.)
+# install(FILES
+#   # myfile1
+#   # myfile2
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
+
+#############
+## Testing ##
+#############
+
+## Add gtest based cpp test target and link libraries
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_hello_world.cpp)
+# if(TARGET ${PROJECT_NAME}-test)
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+# endif()
+
+## Add folders to be run by python nosetests
+# catkin_add_nosetests(test)
+
+```
+
 
 
 
