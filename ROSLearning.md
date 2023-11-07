@@ -399,6 +399,637 @@ catkin_make
 
 
 
+## 1.4 ROS架构
+
+### 1.4.1 ROS架构简介
+
+立足不同的角度，对ROS架构的描述也是不同的，一般我们可以从设计者、维护者、系统结构与自身结构4个角度来描述ROS结构:
+
+#### 1. 设计者
+
+ROS设计者将ROS表述为 `ROS = Plumbing + Tools + Capabilities + Ecosystem`
+
+- Plumbing：**通讯机制(实现ROS不同节点之间的交互)**
+- Tools：**工具软件包(ROS中的开发和调试工具)**
+- Capabilities：机器人高层技能(ROS中某些功能的集合，比如：导航)
+- Ecosystem：机器人生态系统(跨地域、跨软件与硬件的ROS联盟)
+
+#### 2. 维护者
+
+立足**维护者**的角度: ROS 架构可划分为两大部分
+
+- main：核心部分，主要由Willow Garage 和一些开发者设计、提供以及维护。它提供了一些分布式计算的基本工具，以及整个ROS的核心部分的程序编写。
+- universe：全球范围的代码，有不同国家的ROS社区组织开发和维护。一种是库的代码，如OpenCV、PCL等；库的上一层是从功能角度提供的代码，如人脸识别，他们调用下层的库；最上层的代码是应用级的代码，让机器人完成某一确定的功能。
+
+#### 3. 系统架构
+
+立足系统架构: ROS 可以划分为三层
+
+- OS 层，也即经典意义的操作系统
+
+    ROS 只是元操作系统，需要依托真正意义的操作系统，目前兼容性最好的是 Linux 的 Ubuntu，Mac、Windows 也支持 ROS 的较新版本
+
+- 中间层
+
+    是 ROS 封装的关于机器人开发的中间件，比如:
+
+    - 基于 TCP/UDP 继续封装的 TCPROS/UDPROS 通信系统
+    - 用于进程间通信 Nodelet，为数据的实时性传输提供支持
+    - 另外，还提供了大量的机器人开发实现库，如：数据类型定义、坐标变换、运动控制....
+
+- 应用层
+
+    功能包，以及功能包内的节点，比如: master、turtlesim的控制与运动节点...
+
+#### 4. 自身结构
+
+就 ROS 自身实现而言，也可以划分为三层：
+
+- 文件系统
+
+    ROS文件系统级指的是在硬盘上面查看的ROS源代码的组织形式
+
+- 计算图
+
+    ROS 分布式系统中不同进程需要进行数据交互，计算图可以以点对点的网络形式表现数据交互过程，计算图中的重要概念: 节点(Node)、消息(message)、通信机制主题(topic)、通信机制服务(service)
+
+- 开源社区
+
+    ROS的社区级概念是ROS网络上进行代码发布的一种表现形式
+
+    - 发行版（Distribution）　ROS发行版是可以独立安装、带有版本号的一系列综合功能包。ROS发行版像Linux发行版一样发挥类似的作用。这使得ROS软件安装更加容易，而且能够通过一个软件集合维持一致的版本。
+    - 软件库（Repository）　ROS依赖于共享开源代码与软件库的网站或主机服务，在这里不同的机构能够发布和分享各自的机器人软件与程序。
+    - ROS维基（ROS Wiki）　ROS Wiki是用于记录有关ROS系统信息的主要论坛。任何人都可以注册账户、贡献自己的文件、提供更正或更新、编写教程以及其他行为。网址是http://wiki.ros.org/。
+    - Bug提交系统（Bug Ticket System）如果你发现问题或者想提出一个新功能，ROS提供这个资源去做这些。
+    - 邮件列表（Mailing list）　ROS用户邮件列表是关于ROS的主要交流渠道，能够像论坛一样交流从ROS软件更新到ROS软件使用中的各种疑问或信息。网址是http://lists.ros.org/。
+    - ROS问答（ROS Answer）用户可以使用这个资源去提问题。网址是https://answers.ros.org/questions/。
+    - 博客（Blog）你可以看到定期更新、照片和新闻。网址是https://www.ros.org/news/，不过博客系统已经退休，ROS社区取而代之，网址是https://discourse.ros.org/。
+
+
+
+### 1.4.2 ROS文件系统
+
+ROS文件系统级指的是ROS源代码在硬盘上的组织形式，其结构大致可以如下图所示：
+
+![img](img/文件系统.png)
+
+其中：
+
+```bash
+catkin workspace 工作空间
+├── build：编译空间，用于存放CMake和catkin的缓存信息、配置信息和其他中间文件。
+├── devel：开发空间，用于存放编译后生成的目标文件，包括头文件、动态&静态链接库、可执行文件等。
+└── src：源码
+    ├── CMakeList.txt：编译的基本配置
+    ├── package1：功能包(ROS基本单元)包含多个节点、库与配置文件
+    └── package2
+        ├── CMakeList.txt：配置编译规则，比如源文件、依赖项、目标文件
+        ├── package.xml：包信息，如:包名、版本、作者、依赖项等(ROS旧版本是manifest.xml)
+        ├── scripts：脚本文件
+        ├── msg：消息通信格式文件
+        ├── srv：服务通信格式文件
+        ├── include：头文件
+        ├── src：C++源文件
+        ├── launch：启动文件
+        ├── action：动作格式文件
+        └── config：参数配置文件
+```
+
+
+
+#### 1.4.1.1 package.xml 内容说明
+
+该文件基于XML语言，XML指可扩展标记语言（e**X**tensible **M**arkup **L**anguage），被设计用来传输和存储数据。
+
+该文件定义有关软件包的属性信息，如：软件包名称、版本号、作者、维护者以及对其他catkin软件包的依赖性。请注意，该概念类似于旧版ROS的 `rosbuild` 构建系统中使用的 `manifest.xml` 文件。
+
+```xml
+<!-- xml声明：文档符合xml1.0规范 -->
+<?xml version="1.0"?>
+<!-- 格式: 以前是 1，推荐使用格式 2 -->
+<package format="2">
+    <!-- 包名 -->
+    <name>hello_world</name>
+    <!-- 包版本 -->
+    <version>0.0.0</version>
+    <!-- 描述信息 -->
+    <description>The hello_world package</description>
+  
+    <!-- One maintainer tag required, multiple allowed, one person per tag -->
+    <!-- Example:  -->
+    <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+    <!-- 维护人员 -->
+    <maintainer email="vistar@todo.todo">vistar</maintainer>
+  
+  
+    <!-- One license tag required, multiple allowed, one license per tag -->
+    <!-- Commonly used license strings: -->
+    <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+    <!-- 许可证信息，ROS核心组件默认 BSD -->
+    <license>TODO</license>
+  
+  
+    <!-- Url tags are optional, but multiple are allowed, one per tag -->
+    <!-- Optional attribute type can be: website, bugtracker, or repository -->
+    <!-- Example: -->
+    <!-- <url type="website">http://wiki.ros.org/hello_world</url> -->
+  
+  
+    <!-- Author tags are optional, multiple are allowed, one per tag -->
+    <!-- Authors do not have to be maintainers, but could be -->
+    <!-- Example: -->
+    <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+  
+  
+    <!-- The *depend tags are used to specify dependencies -->
+    <!-- Dependencies can be catkin packages or system dependencies -->
+    <!-- Examples: -->
+    <!-- Use depend as a shortcut for packages that are both build and exec dependencies -->
+    <!--   <depend>roscpp</depend> -->
+    <!--   Note that this is equivalent to the following: -->
+    <!--   <build_depend>roscpp</build_depend> -->
+    <!--   <exec_depend>roscpp</exec_depend> -->
+    <!-- Use build_depend for packages you need at compile time: -->
+    <!--   <build_depend>message_generation</build_depend> -->
+    <!-- Use build_export_depend for packages you need in order to build against this package: -->
+    <!--   <build_export_depend>message_generation</build_export_depend> -->
+    <!-- Use buildtool_depend for build tool packages: -->
+    <!--   <buildtool_depend>catkin</buildtool_depend> -->
+    <!-- Use exec_depend for packages you need at runtime: -->
+    <!--   <exec_depend>message_runtime</exec_depend> -->
+    <!-- Use test_depend for packages you need only for testing: -->
+    <!--   <test_depend>gtest</test_depend> -->
+    <!-- Use doc_depend for packages you need only for building documentation: -->
+    <!--   <doc_depend>doxygen</doc_depend> -->
+    <!-- 构建工具，这是必须的 -->
+    <buildtool_depend>catkin</buildtool_depend>
+    
+    <!-- 指定此软件包依赖的其他软件包 -->
+    <build_depend>roscpp</build_depend>
+    <build_depend>rospy</build_depend>
+    <build_depend>std_msgs</build_depend>
+    
+    <!-- 指定根据这个包构建成库所依赖的其他包 -->
+    <build_export_depend>roscpp</build_export_depend>
+    <build_export_depend>rospy</build_export_depend>
+    <build_export_depend>std_msgs</build_export_depend>
+    
+    <!-- 指定运行该软件包所依赖的其他包 -->  
+    <exec_depend>roscpp</exec_depend>
+    <exec_depend>rospy</exec_depend>
+    <exec_depend>std_msgs</exec_depend>
+  
+  
+    <!-- The export tag contains other, unspecified, tags -->
+    <export>
+      <!-- Other tools can request additional information be placed here -->
+  
+    </export>
+</package>
+
+```
+
+#### 1.4.1.2 CMakelists.txt 内容说明
+
+该文件基于CMake语言，CMake是一个跨平台的编译工具，可以用简单的语句来描述所有平台的编译过程。
+
+```cmake
+# 所需 cmake 的最小版本
+cmake_minimum_required(VERSION 3.0.2)
+# 工程名称，隐式定义 ${PROJECT_NAME} 
+project(hello_world)
+
+## Compile as C++11, supported in ROS Kinetic and newer
+# add_compile_options(-std=c++11)
+
+## Find catkin macros and libraries
+## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+## is used, also find other catkin packages
+# 设置构建所需要的软件包
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+)
+
+## System dependencies are found with CMake's conventions
+# find_package(Boost REQUIRED COMPONENTS system)
+
+
+## Uncomment this if the package has a setup.py. This macro ensures
+## modules and global scripts declared therein get installed
+## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
+# 启动 python 模块支持
+# catkin_python_setup()
+
+################################################
+## Declare ROS messages, services and actions ##
+## 设置 ROS 消息、服务、动作等
+################################################
+
+## To declare and build messages, services or actions from within this
+## package, follow these steps:
+## * Let MSG_DEP_SET be the set of packages whose message types you use in
+##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
+## * In the file package.xml:
+##   * add a build_depend tag for "message_generation"
+##   * add a build_depend and a exec_depend tag for each package in MSG_DEP_SET
+##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
+##     but can be declared for certainty nonetheless:
+##     * add a exec_depend tag for "message_runtime"
+## * In this file (CMakeLists.txt):
+##   * add "message_generation" and every package in MSG_DEP_SET to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * add "message_runtime" and every package in MSG_DEP_SET to
+##     catkin_package(CATKIN_DEPENDS ...)
+##   * uncomment the add_*_files sections below as needed
+##     and list every .msg/.srv/.action file to be processed
+##   * uncomment the generate_messages entry below
+##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
+
+## Generate messages in the 'msg' folder
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
+
+## Generate services in the 'srv' folder
+# add_service_files(
+#   FILES
+#   Service1.srv
+#   Service2.srv
+# )
+
+## Generate actions in the 'action' folder
+# add_action_files(
+#   FILES
+#   Action1.action
+#   Action2.action
+# )
+
+## Generate added messages and services with any dependencies listed here
+# 生成消息、服务的依赖包
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+# )
+
+################################################
+## Declare ROS dynamic reconfigure parameters ##
+## 声明 ROS 动态参数配置
+################################################
+
+## To declare and build dynamic reconfigure parameters within this
+## package, follow these steps:
+## * In the file package.xml:
+##   * add a build_depend and a exec_depend tag for "dynamic_reconfigure"
+## * In this file (CMakeLists.txt):
+##   * add "dynamic_reconfigure" to
+##     find_package(catkin REQUIRED COMPONENTS ...)
+##   * uncomment the "generate_dynamic_reconfigure_options" section below
+##     and list every .cfg file to be processed
+
+## Generate dynamic reconfigure parameters in the 'cfg' folder
+# generate_dynamic_reconfigure_options(
+#   cfg/DynReconf1.cfg
+#   cfg/DynReconf2.cfg
+# )
+
+###################################
+## catkin specific configuration ##
+## catkin 特定配置
+###################################
+## The catkin_package macro generates cmake config files for your package
+## Declare things to be passed to dependent projects
+## INCLUDE_DIRS: uncomment this if your package contains header files
+## LIBRARIES: libraries you create in this project that dependent projects also need
+## CATKIN_DEPENDS: catkin_packages dependent projects also need
+## DEPENDS: system dependencies of this project that dependent projects also need
+# 运行时依赖
+catkin_package(
+#  INCLUDE_DIRS include
+#  LIBRARIES hello_world
+#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  DEPENDS system_lib
+)
+
+###########
+## Build ##
+###########
+
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+# 添加头文件路径，注意当前程序包的头文件路径要位于其他文件路径之前
+include_directories(
+# include
+  ${catkin_INCLUDE_DIRS}
+)
+
+## Declare a C++ library
+# 声明 C++ 库
+# add_library(${PROJECT_NAME}
+#   src/${PROJECT_NAME}/hello_world.cpp
+# )
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+# 添加库的目标依赖
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Declare a C++ executable
+## With catkin_make all packages are built within a single CMake context
+## The recommended prefix ensures that target names across packages don't collide
+# 生成可执行文件
+add_executable(${PROJECT_NAME}_node src/hello_world.cpp)
+
+## Rename C++ executable without prefix
+## The above recommended prefix causes long target names, the following renames the
+## target back to the shorter version for ease of user use
+## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
+# 重命名c++可执行文件
+# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+# 添加可执行文件的目标依赖
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+# 指定库、可执行文件的链接库
+target_link_libraries(${PROJECT_NAME}_node
+  ${catkin_LIBRARIES}
+)
+
+#############
+## Install ##
+#############
+
+# all install targets should use catkin DESTINATION variables
+# See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
+
+## Mark executable scripts (Python etc.) for installation
+## in contrast to setup.py, you can choose the destination
+# 设置用于安装的可执行脚本
+catkin_install_python(PROGRAMS
+  scripts/hello_world.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+## Mark executables for installation
+## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
+# install(TARGETS ${PROJECT_NAME}_node
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
+
+## Mark libraries for installation
+## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
+# install(TARGETS ${PROJECT_NAME}
+#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+# )
+
+## Mark cpp header files for installation
+# install(DIRECTORY include/${PROJECT_NAME}/
+#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+#   FILES_MATCHING PATTERN "*.h"
+#   PATTERN ".svn" EXCLUDE
+# )
+
+## Mark other files for installation (e.g. launch and bag files, etc.)
+# install(FILES
+#   # myfile1
+#   # myfile2
+#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+# )
+
+#############
+## Testing ##
+#############
+
+## Add gtest based cpp test target and link libraries
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_hello_world.cpp)
+# if(TARGET ${PROJECT_NAME}-test)
+#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+# endif()
+
+## Add folders to be run by python nosetests
+# catkin_add_nosetests(test)
+
+```
+
+
+
+### 1.4.3 ROS计算图
+
+#### 1.4.2.1 计算图简介
+
+**计算图**是ROS处理数据的一种点对点的网络形式。程序运行时，所有进程以及他们所进行的数据处理，将会通过一种点对点的网络形式表现出来。计算图中的重要概念：节点(Node)、消息(message)、话题(topic)、服务(service)。
+
+**节点(Node)**
+
+节点就是一些直行运算任务的进程。ROS利用规模可增长的方式是代码模块化：一个系统就是典型的由很多节点组成的。在这里，节点也可以被称之为“软件模块”。我们使用“节点”使得基于ROS的系统在运行的时候更加形象化：当许多节点同时运行时，可以很方便的将端对端的通讯绘制成一个图表，在这个图表中，进程就是图中的节点，而端对端的连接关系就是其中弧线连接。
+
+**消息(message)**
+
+节点之间是通过传送消息进行通讯的。每一个消息都是一个严格的数据结构。原来标准的数据类型（整型，浮点型，布尔型等等）都是支持的，同时也支持原始数组类型。消息可以包含任意的嵌套结构和数组（很类似于C语言的结构structs）。
+
+**话题(topic)**
+
+![1365775624_5015](img/1365775624_5015-1698933677587-5.png)
+
+消息以一种发布/订阅的方式传递。一个节点可以在一个给定的主题中发布消息。一个节点针对某个主题关注与订阅特定类型的数据。可能同时有多个节点发布或者订阅同一个主题的消息。总体上，发布者和订阅者不了解彼此的存在。
+
+**服务(service)**
+
+虽然基于话题的发布/订阅模型是很灵活的通讯模式，但是它广播式的路径规划对于可以简化节点设计的同步传输模式并不适合。在ROS中，我们称之为一个服务，用一个字符串和一对严格规范的消息定义：一个用于请求，一个用于回应。这类似于web服务器，web服务器是由URIs定义的，同时带有完整定义类型的请求和回复文档。需要注意的是，不像话题，只有一个节点可以以任意独有的名字广播一个服务：只有一个服务可以称之为“分类象征”，比如说，任意一个给出的URI地址只能有一个web服务器。
+
+在上面概念的基础上，需要有一个控制器可以使所有节点有条不紊的执行，这就是一个ROS的控制器（ROS Master）。
+
+ROS Master 通过RPC（Remote Procedure Call Protocol，远程过程调用）提供了登记列表和对其他计算图表的查找。没有控制器，节点将无法找到其他节点，交换消息或调用服务。
+
+比如控制节点订阅和发布消息的模型如下：
+
+![1365776033_9242](img/1365776033_9242-1698933687792-7.png)
+
+ROS的控制器给ROS的节点存储了主题和服务的注册信息。节点与控制器通信从而报告它们的注册信息。当这些节点与控制器通信的时候，它们可以接收关于其他以注册及节点的信息并且建立与其它以注册节点之间的联系。当这些注册信息改变时控制器也会回馈这些节点，同时允许节点动态创建与新节点之间的连接。
+节点与节点之间的连接是直接的，控制器仅仅提供了查询信息，就像一个DNS服务器。节点订阅一个主题将会要求建立一个与出版该主题的节点的连接，并且将会在同意连接协议的基础上建立该连接。
+
+ROS控制器控制服务的模型如下：
+
+![1365776154_8077](img/1365776154_8077-1698933700789-9.png)
+
+#### 1.4.2.2 查看计算图
+
+ROS 中提供了一个实用的工具 `rqt_graph` 可以查看ROS计算图。它能够创建一个显示当前系统运行情况的动态图形。使用以下命令启动（注意：首先要启动roscore）：
+
+```bash
+rosrun rqt_graph rqt_graph
+或直接使用 rqt_graph 命令
+```
+
+利用ROS自带的小乌龟示例，我们可以看到如下计算图：
+
+其中，圈起来的代表节点，带箭头的线代表话题发布流向。
+
+![image-20231102222106418](img/image-20231102222106418.png)
+
+
+
+# 二、ROS通讯机制
+
+机器人是一种高度复杂的系统性实现，在机器人上可能集成各种传感器(雷达、摄像头、GPS...)以及运动控制实现，为了解耦合，在ROS中每一个功能点都是一个单独的进程，每一个进程都是独立运行的。更确切的讲，**ROS是进程（也称为Nodes）的分布式框架。** 因为这些进程甚至还可分布于不同主机，不同主机协同工作，从而分散计算压力。不过随之也有一个问题: 不同的进程是如何通信的？也即不同进程间如何实现数据交换的？在此我们就需要介绍一下ROS中的通信机制了。
+
+ROS 中的基本通信机制主要有如下三种实现策略:
+
+- 话题通信(发布订阅模式)
+- 服务通信(请求响应模式)
+- 参数服务器(参数共享模式)
+
+## 2.1 话题通讯（Topic）
+
+话题通信适用于不断更新数据、少逻辑处理的传输相关的应用场景。
+
+### 2.2.1 话题通讯模型
+
+话题是一种单向通讯方式，它通过发布和订阅的方式传递消息，该模型涉及到三个角色：
+
+- Master (管理者)
+- Publisher（发布者）
+- Subscriber（订阅者）
+
+**Master** 负责保管 **Publisher** 和 **Subscriber** 的注册信息，并匹配话题相同的 **Publisher** 和 **Subscriber** ，帮助 他们建立连接，连接建立后，**Publisher** 可以发布消息，且发布的消息会被 **Subscriber** 订阅。
+
+![01话题通信模型](img/01话题通信模型.png)
+
+话题模型通讯流程：
+
+- **0）advertise：发布者注册**
+
+​	发布者（Publisher）向管理者（Master）注册信息，包括RPC地址和Topic名字。Master会将发布者的注册信息加入到注册表中，并查询是否有该话题的订阅者。
+
+- **1）subscribe：订阅者注册**
+
+​	订阅者（Subscriber）向管理者（Master）注册信息，包括Topic名字。Master会将订阅者（Subscriber）的注册信息加入到注册表中，并查询是否有该话题的发布者。
+
+- **2）Master匹配信息：牵线搭桥**
+
+​	管理者（Master）通过查询注册表发现有匹配的发布者（Publisher）和订阅者（Subscriber），则向订阅者（Subscriber）发送发布者的RPC地址信息。
+
+- **3）connect：订阅者请求连接发布者**
+
+​	订阅者根据发布者的RPC地址，请求连接发布者（Publisher），并传输订阅的话题名称、消息类型以及通信协议(TCP/UDP)。
+
+- **4）发布者确认请求**
+
+    发布者（Publisher）收到请求后，通过RPC向订阅者确认连接信息，并发送自身的 TCP/UDP 地址信息。
+
+- **5）建立连接**
+
+​	订阅者根据发布者的TCP/UDP地址信息与订阅者建立TCP/UDP连接。
+
+- **6）发送消息**
+
+​	连接建立后，发布者开始向订阅者发布话题消息数据。
+
+> Note：
+>
+> 1. 上述实现流程中，前五步使用 RPC 协议，最后两步使用 TCP/UDP 协议，默认TCP。
+> 2.  发布者 与 订阅者 的启动无先后顺序要求。
+> 3.  发布者 与 订阅者 都可以有多个。
+> 4.  发布者 与 订阅者 连接建立后，不再需要 ROS Master。即便关闭 ROS Master，发布者 与 订阅者 照常通信。不过不会再有新的发布者 与 订阅者加入。
+
+
+
+### 2.2.2 Topic Hello World
+
+万物始于Hello World，同样，使用Hello World介绍Topic的简单使用。
+
+使用Topic传输数据时，需要注意以下几点：
+
+- Topic名称
+- 消息格式
+- 发出者实现
+- 订阅者实现
+
+
+
+
+
+
+
+## 关于ROS的网络通讯方式TCP/UDP
+
+### TCP与UDP
+
+TCP/IP协议族为传输层指明了两个协议：TCP和UDP，它们都是作为应同程序和网络操作的中介物。
+
+**TCP（Transmission Control Protocol）协议全称是传输控制协议，是一种面向连接的、可靠的、基于字节流的传输层通信协议，由IETF的RFC793定义。**TCP是面向连接的、可靠的流协议，提供超时重发，丢弃重复数据，检验数据，流量控制等功能，保证数据能从一端传到另一端。
+
+TCP传输数据稳定可靠，适用于对网络通讯质量要求较高的场景，需要准确无误的传输给对方，比如，传输文件，发送邮件，浏览网页等等。在传输数据前，双方会先建立一条虚拟的通道，可以减少数据传输差错。
+
+传输流程类似下图：
+
+![01fbaa31de51e304fe54d418df4fa1](img/01fbaa31de51e304fe54d418df4fa1.png)
+
+**UDP（User Datagram Protocol）协议全称是用户数据报协议，在网络中它与TCP协议一样用于处理数据包，是一种无连接的协议。**位于OSI模型中第四层——传输层，处于IP协议的上一层。UDP有不提供数据包分组、组装和不能对数据包进行排序的缺点。由于UDP在传输数据报前不用在客户和服务器之间建立一个连接，且没有超时重发等机制，故而传输速度很快。
+
+UDP的优点是速度快，但是可能产生丢包，所以适用于对实时性要求较高但是对少量丢包并没有太大要求的场景。比如：域名查询，语音通话，视频直播等。在数据传输时，每个数据段都是一个独立的信息，包括完整的源地址和目的地，因此，数据能否被对方接收、数据到达的实践和内容的完整性有序性都无法得到保证。
+
+传输流程类似下图：
+
+![01fbaa31de51e304fe54d418dc1f4fa1](img/01fbaa31de51e304fe54d418dc1f4fa1.png)
+
+UDP协议就相当于是写信给对方，寄出去信件之后不能知道对方是否收到信件，信件内容是否完整，也不能得到及时反馈，而TCP协议就像是打电话，你需要知道对方的号码才能打电话，交流的内容可以实时反馈，确保信息的完整性。
+
+两者对比：
+
+|          TCP           |            UDP             |
+| :--------------------: | :------------------------: |
+|        面向连接        |         面向无连接         |
+|                        |       程序结构较简单       |
+|       面向字节流       |         基于数据报         |
+|      保证数据顺序      |       不保证数据顺序       |
+|                        |          速度很快          |
+| 可以检查错误与纠正错误 | 可以检查错误，不可纠正错误 |
+
+总结，UDP更快，更简单，更高效，因此通常用于发送音频和视频文件。TCP是健壮的，可靠的，并保证以相同的顺序传递数据包。
+
+
+
+### ROS的网络通讯方式
+
+ROS提供了两种网络通讯方式，一种是`TCP`协议，一种是`UDP`协议。默认采用TCP进行通讯，但在实际的wifi网络使用中经常遇到客户端和机器人连接中断且无法重新建立连接的情况。在ROS wiki中官方也有说明，`ROSTCP`更适合有线网连接的网络，而`ROSUDP`更适合wifi等网络不可靠的无线网络。下面介绍一下如何在ROS中使用UDP连接。
+
+**首先，rospy不支持udp连接，** 所以要实现ROSUDP必须是用`roscpp`写的，然后在订阅的时候添加 `ros::TransportHints` 指定连接方式。如下面的代码：
+
+```cpp
+#include <ros/ros.h>
+#include <std_msgs/String.h>
+
+void print_message(const std_msgs::String data)
+{
+    ROS_INFO_STREAM("received: " << data);
+}
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "udp_test_node");
+    ros::AsyncSpinner spinner(4);
+    spinner.start();
+    ros::NodeHandle private_nh("~");
+    ros::Subscriber chatter_sub = private_nh.subscribe("/chatter", 10, print_message,                 			ros::TransportHints().unreliable().maxDatagramSize(1000));
+    while (ros::ok())
+    {
+        sleep(1);
+    }
+}
+```
+
+其中 `unreliable` 用于指定采用udp连接。详细例子可以参照 [这个](https://github.com/BluewhaleRobot/udp_test) 项目。
+
 
 
 
