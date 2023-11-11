@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 {
     // 以下任意一句： 设置编码，解决ROS LOG打印中文乱码的问题
     // 但 rostopic echo 中文乱码的问题无法解决
-    // setlocale(LC_ALL, ""); 
+    // setlocale(LC_ALL, "");
     setlocale(LC_CTYPE, "zh_CN.utf8");
 
     // 2.初始化 ROS 节点： 命名(唯一)
@@ -32,6 +32,21 @@ int main(int argc, char **argv)
     // 参数1: 要发布到的话题名称
     // 参数2: 队列中最大保存的消息数，超出此阀值时，先进的先销毁(时间早的先销毁)
     ros::Publisher pub = nh.advertise<std_msgs::String>("/hello_world_topic", 10);
+
+    // 延时1s等待publisher在ROS Master注册成功后，再发布消息。
+    // ros::Duration(1.0).sleep();
+    // 目的同上，为了确保发布者注册成功再发布消息
+    // 等待直到发布者成功注册到 ROS Master，并有订阅者订阅
+    while (pub.getNumSubscribers() == 0)
+    {
+        if (!ros::ok())
+        {
+            // 如果节点被关闭，退出程序
+            return 0;
+        }
+        ROS_INFO_ONCE("Waiting for subscribers to connect...");
+        ros::Duration(1.0).sleep(); // 等待一秒钟
+    }
 
     // 5.组织被发布的数据，并编写逻辑发布数据
     std_msgs::String msg;
