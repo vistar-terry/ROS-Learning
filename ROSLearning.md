@@ -956,7 +956,7 @@ ROS 中的基本通信机制主要有如下三种实现策略:
 
 接下来实现一个简单的 `Topic` 话题通信，发布者发布 `Hello Word n` （n代表递增数列）字符串，订阅者接收到后输出到屏幕。
 
-#### 2.2.2.1 创建并初始化包
+#### 2.2.2.1 创建并初始化功能包
 
 （这一步不是必须，这里只是为了方便清晰的说明，也可以使用已有的包，在包里新增节点等方法）
 
@@ -1024,6 +1024,21 @@ int main(int argc, char **argv)
     // 参数2: 队列中最大保存的消息数，超出此阀值时，先进的先销毁(时间早的先销毁)
     ros::Publisher pub = nh.advertise<std_msgs::String>("/hello_world_topic", 10);
 
+    // 延时1s等待publisher在ROS Master注册成功后，再发布消息。
+    // ros::Duration(1.0).sleep();
+    // 目的同上，为了确保发布者注册成功再发布消息
+    // 等待直到发布者成功注册到 ROS Master，并有订阅者订阅
+    while (pub.getNumSubscribers() == 0)
+    {
+        if (!ros::ok())
+        {
+            // 如果节点被关闭，退出程序
+            return 0;
+        }
+        ROS_INFO_ONCE("Waiting for subscribers to connect...");
+        ros::Duration(1.0).sleep(); // 等待一秒钟
+    }
+    
     // 5.组织被发布的数据，并编写逻辑发布数据
     std_msgs::String msg;
     std::string msg_front = "Hello World "; // 消息前缀
@@ -1032,7 +1047,7 @@ int main(int argc, char **argv)
     // 运行loop的频率(1Hz: 一秒1次)
     ros::Rate r(1);
 
-    // 节点不死
+    // 让节点一直运行
     while (ros::ok())
     {
         // 拼接字符串与编号，并组装消息数据
@@ -1053,6 +1068,294 @@ int main(int argc, char **argv)
 ```
 
 创建 `topic_hello_world_sub.cpp` 以实现订阅者，编辑内容如下：
+
+```cpp
+/*
+    实现流程:
+        1.包含头文件
+        2.初始化 ROS 节点:命名(唯一)
+        3.实例化 ROS 句柄
+        4.实例化 订阅者 对象
+        5.处理订阅的消息(回调函数)
+        6.设置循环调用回调函数
+*/
+
+// 1.包含头文件
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+
+// 5.处理订阅的消息(回调函数)
+// topic回调函数，处理订阅的消息
+void topicCallback(const std_msgs::String::ConstPtr &msg_p)
+{
+    ROS_INFO("收到的消息: %s", msg_p->data.c_str());
+}
+
+int main(int argc, char **argv)
+{
+    // 以下任意一句： 设置编码，解决ROS LOG打印中文乱码的问题
+    // 但 rostopic echo 中文乱码的问题无法解决
+    // setlocale(LC_ALL, ""); 
+    setlocale(LC_CTYPE, "zh_CN.utf8");
+
+    // 2.初始化 ROS 节点:命名(唯一)
+    ros::init(argc, argv, "subscriber");
+
+    // 3.实例化 ROS 句柄
+    ros::NodeHandle nh;
+
+    // 4.实例化 订阅者 对象
+    ros::Subscriber sub = nh.subscribe<std_msgs::String>("/hello_world_topic", 10, topicCallback);
+
+    // 6.设置循环调用回调函数
+    ros::spin(); // 循环读取接收的数据，并调用回调函数处理
+
+    return 0;
+}
+```
+
+修改 `CMakeLists.txt` ，只需添加如下内容：
+
+```cmake
+add_executable(${PROJECT_NAME}_pub src/topic_hello_world_pub.cpp)
+add_executable(${PROJECT_NAME}_sub src/topic_hello_world_sub.cpp)
+    
+target_link_libraries(${PROJECT_NAME}_pub
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}_sub
+  ${catkin_LIBRARIES}
+)
+```
+
+**编译运行**
+
+进入工作空间执行 `catkin_make` 命令编译工程，编译成功后，使用如下命令依次启动发布者和订阅者。
+
+```bash
+1. 启动ros master
+roscore
+2. 启动发布者
+./devel/lib/topic_hello_world/topic_hello_world_pub
+3. 启动订阅者
+./devel/lib/topic_hello_world/topic_hello_world_sub
+```
+
+结果如下：
+
+![image-20231110231909839](img/image-20231110231909839.png)
+
+目前为止，**Topic Hello World** 已经成功了。
+
+#### 2.2.2.4 实现发布者与订阅者（Python版）
+
+在创建的 `topic_hello_world` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `topic_hello_world_pub.py` 以实现发布者，编辑内容如下：
+
+```python
+#! /usr/bin python
+"""
+    实现流程:
+        1.导包 
+        2.初始化 ROS 节点:命名(唯一)
+        3.实例化 发布者 对象
+        4.组织被发布的数据，并编写逻辑发布数据
+"""
+# 1.导包
+import rospy
+from std_msgs.msg import String
+
+
+def main():
+    # 2.初始化 ROS 节点:命名(唯一)
+    rospy.init_node("publisher")
+
+    # 3.实例化 发布者 对象
+    pub = rospy.Publisher("/hello_world_topic", String, queue_size=10)
+    # rospy.sleep(1)
+    while pub.get_num_connections() == 0:
+        if rospy.is_shutdown():
+            return
+        rospy.loginfo_once("Waiting for subscribers to connect...")
+        rospy.sleep(1)
+
+    # 4.组织要发布的数据，并编写逻辑发布数据
+    msg = String()  # 创建 msg 对象
+    msg_front = "Hello World "
+    count = 0  # 计数器
+    # 设置循环频率
+    rate = rospy.Rate(1)
+    while not rospy.is_shutdown():
+        # 拼接字符串
+        msg.data = msg_front + str(count)
+        pub.publish(msg)
+        rate.sleep()
+        rospy.loginfo("发送的消息: %s", msg.data)
+        count += 1
+
+
+if __name__ == "__main__":
+    main()
+```
+
+在`scrips`中创建 `topic_hello_world_sub.py` 以实现订阅者，编辑内容如下：
+
+```python
+#! /usr/bin python
+"""
+    实现流程:
+        1.导包 
+        2.初始化 ROS 节点:命名(唯一)
+        3.实例化 订阅者 对象
+        4.处理订阅的消息(回调函数)
+        5.设置循环调用回调函数
+"""
+# 1.导包
+import rospy
+from std_msgs.msg import String
+
+
+# 4.处理订阅的消息(回调函数)
+def topicCallback(msg):
+    rospy.loginfo("收到的消息: %s", msg.data)
+
+
+def main():
+    # 2.初始化 ROS 节点:命名(唯一)
+    rospy.init_node("subscriber")
+
+    # 3.实例化 订阅者 对象
+    sub = rospy.Subscriber("/hello_world_topic", String, topicCallback, queue_size=10)
+
+    # 5.设置循环调用回调函数
+    rospy.spin()
+
+
+if __name__ == "__main__":
+    main()
+```
+
+修改 `CMakeLists.txt` ，只需添加如下内容：
+
+```cmake
+catkin_install_python(PROGRAMS
+  scripts/topic_hello_world_pub.py
+  scripts/topic_hello_world_sub.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+```
+
+**编译运行**
+
+进入工作空间执行 `catkin_make` 命令编译工程，编译成功后，使用如下命令依次启动发布者和订阅者。
+
+```bash
+1. 启动ros master(如果已启动，无需再启动)
+roscore
+2. 启动发布者
+python ./devel/lib/topic_hello_world/topic_hello_world_pub.py
+3. 启动订阅者
+python ./devel/lib/topic_hello_world/topic_hello_world_pub.py
+```
+
+结果如下：
+
+![image-20231111141651883](img/image-20231111141651883.png)
+
+
+
+#### 2.2.2.5 关于Topic Hello World的注意
+
+启动发布者与订阅者时建议用如下命令：（上述命令只是给初学者的）：
+
+```bash
+启动发布者
+rosrun topic_hello_world topic_hello_world_pub （C++版）
+rosrun topic_hello_world topic_hello_world_pub.py （Python版）
+启动订阅者
+rosrun topic_hello_world topic_hello_world_sub （C++版）
+rosrun topic_hello_world topic_hello_world_sub.py （Python版）
+```
+
+其中，`rosrun` 是执行ROS可执行文件的命令，`topic_hello_world`是功能包的名称，`topic_hello_world_pub`是该功能包下可执行文件（如节点）的名称。
+
+如果你遇到如下错误：
+
+![image-20231110221417114](img/image-20231110221417114.png)
+
+那么可能你没有把工作空间的路径加到终端环境变量中，听起看来是不是很晕，不要急，`catkin` 为我们提供了一个脚本可以做这件事，它位于工作空间下的 `devel` 目录中，有如下三个脚本：
+
+```bash
+setup.bash 
+setup.zsh
+setup.sh
+```
+
+其中，
+
+- **setup.sh：**是一个**Shell**脚本，用于设置ROS软件包的环境变量。当你使用`source devel/setup.sh`命令时，它会将当前工作空间的路径添加到`ROS_PACKAGE_PATH`中，并设置其他与ROS运行时相关的环境变量，如：将当前工作空间的 `bin`, `lib`, `include` 和 `share` 文件夹添加到终端环境的 `PATH`, `LD_LIBRARY_PATH`, `CMAKE_PREFIX_PATH` 和 `PYTHONPATH` 变量中。这样，在执行 ROS 命令和使用 ROS 相关库时，终端将能够找到和访问这些文件夹中的内容。
+- **setup.bash：**一个**Bash**脚本，用于设置ROS软件包的环境变量。他调用了 `setup.sh`。
+- **setup.zsh：**是一个**Zsh**脚本，类似于`setup.bash`，用于设置ROS软件包的环境变量。他调用了 `setup.sh`。
+
+根据你使用的shell类型运行相应的脚本，我们一般把脚本加到终端配置文件中，以**bash**为例：
+
+1. 编辑`~/.bashrc`文件，将`source <setup.bash_abs_path>`添加到文件中，一般添加到末尾，其中`<setup.bash_path>`代表`setup.bash`文件的绝对路径。
+2. 执行 `source ~/.bashrc` 使修改生效。
+
+至此，再执行 `rosrun topic_hello_world topic_hello_world_pub` 就不会报错了。
+
+
+
+### 拓展1：devel下其他文件与目录的作用
+
+![image-20231110235612869](img/image-20231110235612869.png)
+
+1. **cmake.lock**: 一个用于记录构建过程中的锁文件。它包含有关构建状态和依赖项的信息，用于锁定CMake的缓存信息。当CMake在构建过程中遇到相同的输入时，它会使用这个文件来避免重复编译。
+2. **lib**: 包含编译生成的库文件。ROS软件包中的节点或其他模块编译后生成的库文件通常会存放在这个目录下。
+3. **local_setup.zsh**: 一个Zsh脚本，用于设置当前终端会话的环境变量，使其能够识别和运行与ROS相关的程序和软件包。
+4. **_setup_util.py**: 一个Python脚本，用于设置ROS软件包的环境变量。这个脚本被`setup.sh`调用。
+5. **env.sh**: 一个用于设置环境变量的脚本。当你希望手动设置ROS软件包的环境变量时，可以使用这个脚本。
+6. **local_setup.bash**: 一个Bash脚本，用于设置当前终端会话的环境变量，使其能够识别和运行与ROS相关的程序和软件包。
+7. **include**: 包含头文件。在编译时，一些头文件可能会被拷贝到这个目录下，以便在其他ROS软件包中使用。
+8. **local_setup.sh**: 一个Shell脚本，用于设置当前终端会话的环境变量，使其能够识别和运行与ROS相关的程序和软件包。
+9. **share**: 包含共享的数据文件、配置文件和其他资源。这些资源可以被其他软件包或节点访问和使用。可能包含ROS软件包的配置文件、启动文件、参数设置等共享资源。
+
+
+
+### 拓展2：build 目录下各文件与目录的作用
+
+1. **atomic_configure**: 包含构建配置的原子配置文件，用于确保配置的原子性。这个文件可能包含一些构建系统的配置信息。
+2. **bin**: 包含构建生成的可执行文件。ROS软件包中的节点或其他二进制文件通常会存放在这个目录下。
+3. **catkin**: 包含Catkin构建系统的一些生成文件和配置信息。
+4. **catkin_generated**: 包含由Catkin工具生成的文件。这个目录包含一些与Catkin相关的中间文件和构建信息。
+5. **CATKIN_IGNORE**: 一个标记文件，用于指示Catkin在构建过程中忽略此目录。这对于排除特定目录或文件不参与构建是很有用的。
+6. **gtest**: Google Test（gtest）的相关文件和构建信息。gtest是一个用于C++单元测试的测试框架。
+7. **test_results**: 包含测试运行的结果。当运行`catkin_make run_tests`时，测试框架会将测试结果输出到这个目录。
+8. **catkin_make.cache**: 一个Catkin缓存文件，包含构建系统的一些缓存信息，以提高构建效率。
+9. **CMakeCache.txt**: 由CMake生成，包含有关CMake配置的缓存信息。这个文件记录了CMake变量的当前值，以及一些配置选项。
+10. **Makefile**: 由CMake生成，用于执行实际的编译和构建操作。
+11. **CMakeFiles**: 包含由CMake生成的中间文件。这些文件包括用于构建过程中生成的临时对象文件、编译器输出等。
+12. **cmake_install.cmake**: 由CMake生成，包含用于将文件安装到指定目录的指令。
+13. **CTestConfiguration.ini**: 用于配置CTest（CMake的测试工具）的配置文件。
+14. **CTestCustom.cmake**: CTest的自定义配置文件，其中可以包含一些用户自定义的测试配置选项。
+15. **CTestTestfile.cmake**: CTest的测试文件配置，用于指定要运行的测试用例。
+16. **my_pkg**: 这个名字是你的功能包的名字，可能有多个，即ROS功能包的构建目录，其中包含了编译生成的中间文件、目标文件以及其他与构建过程相关的信息。
+
+这些文件和目录是构建和测试过程中的临时文件和配置文件，它们会在ROS工作空间的生命周期内动态生成和修改。
+
+
+
+### 2.2.3 自定义msg
+
+
+
+
+
+
+
+
+
+
 
 
 
