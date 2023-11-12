@@ -1347,6 +1347,126 @@ setup.sh
 
 ### 2.2.3 自定义msg
 
+在 ROS 通信协议中，数据是以约定好的结构传输的，即数据类型，比如Topic使用的msg，Service使用的srv，ROS 中的 std_msgs 封装了一些原生的数据类型，比如：Bool、Char、Float32、Int64、String等，但这些类型结构简单，常常不能满足我们的需要，这时我们可以使用自定义的消息类型。
+
+比如我们创建一个自定义消息，定义一个机器人的ID，位置（x, y）。
+
+#### 2.2.3.1 创建RobotPose.msg
+
+我们仍然使用前文创建的 `topic_hello_world` 功能包，结构如下：
+
+![image-20231108230000306](img/image-20231108230000306.png)
+
+在`src`的同级目录创建 `msg` 目录，在`msg`目录创建 `RobotPose.msg` 文件，内容如下：
+
+```xml
+string id
+float64 x
+float64 y
+float64 angle
+```
+
+#### 2.2.3.2 配置编译文件
+
+需要对 `CMakeLists.txt` 作以下修改：
+
+**1. 添加message_generation功能包**
+
+`message_generation`功能包，在**构建时**根据`msg`和`srv`生成消息和服务的接口文件（比如C++头文件和Python包），以便在 ROS 节点中使用。
+
+```cmake
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+  message_generation
+)
+```
+
+注意这里需要同时在`package.xml`中添加以下内容：
+
+```xml
+<build_depend>message_generation</build_depend>
+```
+
+**2. 添加msg文件**
+
+添加自定义`msg`，该函数依赖`message_generation`功能包。
+
+```cmake
+add_message_files(
+  FILES
+  RobotPose.msg
+)
+```
+
+**3. 配置依赖并生成接口文件**
+
+添加处理`msg`或`srv`所需要的依赖，并生成接口文件，该函数依赖`message_generation`功能包。
+
+```cmake
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
+```
+
+**4 . 添加message_runtime依赖**
+
+`message_runtime` 用于在运行时提供消息的序列化和反序列化支持。
+
+这里注意，有时可能会看到没有显式添加 `message_runtime` 也能正常运行，这通常是因为其他依赖项（例如`roscpp` 或 `std_msgs`）可能已经隐含地包含了 `message_runtime`。在这种情况下，构建系统已经处理了消息生成的任务。
+
+然而，为了确保你的软件包在所有情况下都能正常工作，最好显示添加 `message_runtime` 作为你的软件包的依赖项。这样可以确保你的消息定义在构建和运行时得到正确处理。
+
+需要对 `CMakeLists.txt` 作以下修改：
+
+```cmake
+catkin_package(
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+)
+```
+
+同时在`package.xml`中添加以下内容：
+
+```xml
+<exec_depend>message_runtime</exec_depend>
+```
+
+> 节外生枝的小知识：
+>
+> `catkin_package` 是在ROS软件包的 `CMakeLists.txt` 文件中用于配置Catkin软件包的一条命令。它主要用于描述ROS软件包的元信息，并在构建系统中定义软件包的依赖关系。以下是 `catkin_package` 的一般用途：
+>
+> 1. **软件包元信息配置：** `catkin_package` 允许你指定软件包的元信息，例如软件包的名称、版本、作者、描述等。这些信息将用于标识和描述你的ROS软件包。
+>
+>     ```
+>     cmakeCopy codecatkin_package(
+>       NAME your_package_name
+>       VERSION 0.1.0
+>       DESCRIPTION "Your package description"
+>       AUTHOR "Your Name"
+>     )
+>     ```
+>
+> 2. **设置软件包的依赖项：** `catkin_package` 允许你指定你的软件包依赖于其他ROS软件包的哪些部分。这些依赖项将在构建和运行时被解析和满足。
+>
+>     ```
+>     cmakeCopy codecatkin_package(
+>       ...
+>       CATKIN_DEPENDS roscpp std_msgs message_runtime
+>     )
+>     ```
+>
+> 3. **导出软件包的目标：** 通过 `${PROJECT_NAME}_EXPORTED_TARGETS` 这样的参数，你可以导出软件包的目标，以便其他软件包能够正确地依赖你的软件包，并包含所有必要的目标。
+>
+>     ```
+>     cmakeCopy codecatkin_package(
+>       ...
+>       EXPORTED_TARGETS ${PROJECT_NAME}_EXPORTED_TARGETS
+>     )
+>     ```
+>
+> 总体而言，`catkin_package` 提供了一个中心化的地方，用于指定ROS软件包的基本信息和配置，以便构建系统和其他软件包能够正确地使用和依赖你的软件包。在ROS中，它是配置软件包最重要的命令之一。
 
 
 
@@ -1360,6 +1480,31 @@ setup.sh
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 其他
 
 
 
