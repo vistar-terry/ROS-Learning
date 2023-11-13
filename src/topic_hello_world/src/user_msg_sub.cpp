@@ -3,7 +3,7 @@
 
 void robotPoseCallback(const topic_hello_world::RobotPose::ConstPtr &pose)
 {
-    ROS_INFO("Sub robot pose(%lf, %lf, %lf)", pose->x, pose->y, pose->angle);
+    ROS_INFO("Sub robot: %s, pose(%lf, %lf, %lf)", pose->id.c_str(), pose->x, pose->y, pose->angle);
 }
 
 int main(int argc, char **argv)

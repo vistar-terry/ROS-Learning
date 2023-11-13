@@ -180,6 +180,8 @@ target_link_libraries(${PROJECT_NAME}_user_msg_sub
 catkin_install_python(PROGRAMS
   scripts/topic_hello_world_pub.py
   scripts/topic_hello_world_sub.py
+  scripts/user_msg_pub.py
+  scripts/user_msg_sub.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
