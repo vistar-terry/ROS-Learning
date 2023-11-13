@@ -17,8 +17,9 @@ int main(int argc, char **argv)
     while(ros::ok())
     {
         pose_pub.publish(pose);
-        ROS_INFO("Pub robot pose(%lf, %lf, %lf)", pose.x, pose.y, pose.angle);
+        ROS_INFO("Pub robot: %s, pose(%lf, %lf, %lf)", pose.id.c_str(), pose.x, pose.y, pose.angle);
         ros::Duration(1).sleep();
+        ros::spinOnce();
     }
 
     return 0;
