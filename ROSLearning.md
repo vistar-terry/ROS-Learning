@@ -1433,68 +1433,278 @@ catkin_package(
 <exec_depend>message_runtime</exec_depend>
 ```
 
-> 节外生枝的小知识：
->
+**节外生枝的小知识：**
+
 > `catkin_package` 是在ROS软件包的 `CMakeLists.txt` 文件中用于配置Catkin软件包的一条命令。它主要用于描述ROS软件包的元信息，并在构建系统中定义软件包的依赖关系。以下是 `catkin_package` 的一般用途：
 >
 > 1. **软件包元信息配置：** `catkin_package` 允许你指定软件包的元信息，例如软件包的名称、版本、作者、描述等。这些信息将用于标识和描述你的ROS软件包。
 >
 >     ```
->     cmakeCopy codecatkin_package(
+>    cmakeCopy codecatkin_package(
 >       NAME your_package_name
 >       VERSION 0.1.0
 >       DESCRIPTION "Your package description"
 >       AUTHOR "Your Name"
 >     )
 >     ```
->
+> 
 > 2. **设置软件包的依赖项：** `catkin_package` 允许你指定你的软件包依赖于其他ROS软件包的哪些部分。这些依赖项将在构建和运行时被解析和满足。
 >
 >     ```
->     cmakeCopy codecatkin_package(
+>    cmakeCopy codecatkin_package(
 >       ...
 >       CATKIN_DEPENDS roscpp std_msgs message_runtime
 >     )
 >     ```
->
+> 
 > 3. **导出软件包的目标：** 通过 `${PROJECT_NAME}_EXPORTED_TARGETS` 这样的参数，你可以导出软件包的目标，以便其他软件包能够正确地依赖你的软件包，并包含所有必要的目标。
 >
 >     ```
->     cmakeCopy codecatkin_package(
+>    cmakeCopy codecatkin_package(
 >       ...
 >       EXPORTED_TARGETS ${PROJECT_NAME}_EXPORTED_TARGETS
 >     )
 >     ```
->
+> 
 > 总体而言，`catkin_package` 提供了一个中心化的地方，用于指定ROS软件包的基本信息和配置，以便构建系统和其他软件包能够正确地使用和依赖你的软件包。在ROS中，它是配置软件包最重要的命令之一。
 
+#### 2.2.3.3 实现发布者与订阅者（C++版）
+
+在创建的 `topic_hello_world` 包路径的 `src` 目录中创建 `user_msg_pub.cpp` 以实现发布者，编辑内容如下：
+
+```cpp
+#include <ros/ros.h>
+#include "topic_hello_world/RobotPose.h"
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "user_msg_pub");
+    ros::NodeHandle nh;
+
+    ros::Publisher pose_pub = nh.advertise<topic_hello_world::RobotPose>("/robot_pose", 10);
+
+    topic_hello_world::RobotPose pose;
+    pose.id = "vbot";
+    pose.x = 23.6;
+    pose.y = 12.8;
+    pose.angle = 90.0;
+
+    while(ros::ok())
+    {
+        pose_pub.publish(pose);
+        ROS_INFO("Pub robot: %s, pose(%lf, %lf, %lf)", pose.id.c_str(), pose.x, pose.y, pose.angle);
+        ros::Duration(1).sleep();
+        ros::spinOnce();
+    }
+
+    return 0;
+}
+```
+
+创建 `user_msg_sub.cpp` 以实现订阅者，编辑内容如下：
+
+```cpp
+#include <ros/ros.h>
+#include "topic_hello_world/RobotPose.h"
+
+void robotPoseCallback(const topic_hello_world::RobotPose::ConstPtr &pose)
+{
+    ROS_INFO("Sub robot: %s, pose(%lf, %lf, %lf)", pose->id.c_str(), pose->x, pose->y, pose->angle);
+}
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "user_msg_sub");
+    ros::NodeHandle nh;
+    ros::Subscriber pose_sub = nh.subscribe<topic_hello_world::RobotPose>("/robot_pose", 10, robotPoseCallback);
+
+    ros::spin();
+
+    return 0;
+}
+```
+
+修改 `CMakeLists.txt` ，只需添加如下内容：
+
+```cmake
+add_executable(${PROJECT_NAME}_user_msg_pub src/user_msg_pub.cpp)
+add_executable(${PROJECT_NAME}_user_msg_sub src/user_msg_sub.cpp)
+    
+target_link_libraries(${PROJECT_NAME}_user_msg_pub
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}_user_msg_sub
+  ${catkin_LIBRARIES}
+)
+```
+
+**编译运行**
+
+进入工作空间执行 `catkin_make` 命令编译工程，你可能会遇到如下错误：
+
+![image-20231113221306577](img/image-20231113221306577.png)
+
+这是因为上文提到的`message_generation`功能包，在它编译自定义msg生成对应接口文件之前，编译了c++源文件，但这时头文件`RobotPose.h`还没有生成，所以报错了。
+
+到这里你有没有发现，如果各功能包间有依赖关系，他们的编译是有先后顺序的，那我们怎么控制这个先后顺序呢？答案是：不需要。哈哈，CMake已经替我们做了，我们只需告诉它哪个模块需要什么依赖，CMake内部会自动分析项目中的依赖关系，并根据这些依赖关系计算一个拓扑排序。然后，CMake会按照这个顺序处理各个功能包，以确保在构建过程中满足所有依赖关系。
+
+我们可以在 `CMakeLists.txt`中使用 `add_dependencies()` 来添加这个依赖关系，语法如下：
+
+```cmake
+add_dependencies(target_name dependency_target_name)
+```
+
+其中，`target_name` 是要添加依赖关系的目标名称，`dependency_target_name` 是要添加的依赖目标名称。
+
+例如，如果你有一个名为 `my_node` 的目标，你想要添加一个名为 `my_dependency` 的库作为其依赖项，可以使用以下命令：
+
+```cmake
+add_dependencies(my_node my_dependency)
+```
+
+**所以，为解决上述报错，我们在 `topic_hello_world/CMakeLists.txt`中添加如下内容：**
+
+```cmake
+# 注意他们要放在add_executable之后，即先告诉CMake是哪个节点，再告诉CMake它需要什么依赖
+add_dependencies(${PROJECT_NAME}_user_msg_pub ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME}_user_msg_sub ${PROJECT_NAME}_generate_messages_cpp)
+```
+
+其中，第一项是我们生成的节点，第二项 `${PROJECT_NAME}_generate_messages_cpp` 是一个用于生成消息类型的C++文件的宏，它的作用是根据 `.msg` 和 `.srv` 文件生成对应的 `.h` 和 `.cpp` 文件。
+
+**节外生枝的小知识：**
+
+> 在ROS软件包的构建过程中，除了`${PROJECT_NAME}_generate_messages_cpp`，还有一些其他与消息生成和编译相关的宏。这些宏通常都是与 Catkin 工具链和 ROS 构建系统的一部分。
+>
+> 以下是一些常见的与消息生成相关的宏：
+>
+> 1. **`${PROJECT_NAME}_generate_messages`：** 这个宏表示生成所有与消息相关的任务。通常，在调用 `catkin_package(...)` 时，`CATKIN_DEPENDS` 部分会包含 `${PROJECT_NAME}_generate_messages`，以确保在构建软件包时执行消息生成任务。
+>
+>     ```cmake
+>     catkin_package(
+>       CATKIN_DEPENDS 
+>       roscpp 
+>       std_msgs 
+>       message_runtime
+>       ${PROJECT_NAME}_generate_messages
+>     )
+>     ```
+>
+> 2. **`${PROJECT_NAME}_generate_messages_py`：** 类似于 `${PROJECT_NAME}_generate_messages_cpp`，这个宏用于指定生成与消息相关的Python代码的路径。当你的ROS软件包包含使用Python编写的节点或服务时，可能会用到这个宏。
+>
+> 3. **`${PROJECT_NAME}_EXPORTED_TARGETS`：** 这个宏用于导出所有与软件包相关的目标，包括消息生成任务。通常，在调用 `catkin_package(...)` 时，`EXPORTED_TARGETS` 部分会包含 `${PROJECT_NAME}_EXPORTED_TARGETS`，以确保其他软件包能够正确地依赖你的软件包，并包括所有必要的目标。
+>
+>     ```cmake
+>     cmakeCopy codecatkin_package(
+>       ...
+>       INCLUDE_DIRS include
+>       LIBRARIES ${PROJECT_NAME}_library
+>       CATKIN_DEPENDS roscpp std_msgs message_runtime
+>       DEPENDS system_lib
+>       EXPORTED_TARGETS ${PROJECT_NAME}_EXPORTED_TARGETS
+>     )
+>     ```
+>
+> 请注意，具体的宏可能会受到ROS版本、Catkin工具链版本和软件包的配置选项的影响。上述宏的名称中的 `${PROJECT_NAME}` 部分会根据你的软件包的名称而变化。
+
+**编译成功后，使用如下命令依次启动发布者和订阅者。**
+
+```bash
+1. 启动ros master
+roscore
+2. 启动发布者
+rosrun topic_hello_world topic_hello_world_user_msg_pub
+3. 启动订阅者
+rosrun topic_hello_world topic_hello_world_user_msg_sub
+```
+
+结果如下：
+
+![image-20231113225303077](img/image-20231113225303077.png)
+
+目前为止，**Topic Hello World** 的自定义msg已经成功了。
+
+#### 2.2.3.4 实现发布者与订阅者（Python版）
+
+在 `topic_hello_world` 包路径下的 `scripts` 目录中，创建 `user_msg_pub.py` 以实现发布者，编辑内容如下：
+
+```python
+#! /usr/bin python
+
+import rospy
+from topic_hello_world.msg import RobotPose
 
 
+def main():
+    rospy.init_node("user_msg_pub")
+    pub = rospy.Publisher("/robot_pose", RobotPose, queue_size=10)
+    msg = RobotPose()
+    msg.id = "vbot"
+    msg.x = 52.1
+    msg.y = 12.6
+    msg.angle = 180.0
+
+    while not rospy.is_shutdown():
+        pub.publish(msg)
+        rospy.loginfo("Pub robot: {}, pose({}, {}, {})".format(msg.id, msg.x, msg.y, msg.angle))
+        rospy.sleep(1)
 
 
+if __name__ == "__main__":
+    main()
+```
+
+在`scrips`中创建 `user_msg_sub.py` 以实现订阅者，编辑内容如下：
+
+```python
+#! /usr/bin python
+
+import rospy
+from topic_hello_world.msg import RobotPose
 
 
+def robotPoseCallback(msg):
+    rospy.loginfo("Sub robot: {}, pose({}, {}, {})".format(msg.id, msg.x, msg.y, msg.angle))
 
 
+def main():
+    rospy.init_node("user_msg_sub")
+    rospy.Subscriber("/robot_pose", RobotPose, robotPoseCallback, queue_size=10)
+
+    rospy.spin()
 
 
+if __name__ == "__main__":
+    main()
+```
 
+修改 `CMakeLists.txt` ，只需添加如下内容：
 
+```cmake
+catkin_install_python(PROGRAMS
+  scripts/user_msg_pub.py
+  scripts/user_msg_sub.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+```
 
+**编译运行**
 
+进入工作空间执行 `catkin_make` 命令编译工程，编译成功后，使用如下命令依次启动发布者和订阅者。
 
+```bash
+1. 启动ros master(如果已启动，无需再启动)
+roscore
+2. 启动发布者
+rosrun topic_hello_world user_msg_pub.py
+3. 启动订阅者
+rosrun topic_hello_world user_msg_sub.py
+```
 
+结果如下：
 
-
-
-
-
-
-
-
-
-
-
+![image-20231113232012306](img/image-20231113232012306.png)
 
 
 
