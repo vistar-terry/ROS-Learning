@@ -892,7 +892,7 @@ ROS 中的基本通信机制主要有如下三种实现策略:
 
 话题通信适用于不断更新数据、少逻辑处理的传输相关的应用场景。
 
-### 2.2.1 话题通讯模型
+### 2.1.1 话题通讯模型
 
 话题是一种单向通讯方式，它通过发布和订阅的方式传递消息，该模型涉及到三个角色：
 
@@ -943,7 +943,7 @@ ROS 中的基本通信机制主要有如下三种实现策略:
 
 
 
-### 2.2.2 Topic Hello World
+### 2.1.2 Topic Hello World
 
 万物始于Hello World，同样，使用Hello World介绍Topic的简单使用。
 
@@ -956,7 +956,7 @@ ROS 中的基本通信机制主要有如下三种实现策略:
 
 接下来实现一个简单的 `Topic` 话题通信，发布者发布 `Hello Word n` （n代表递增数列）字符串，订阅者接收到后输出到屏幕。
 
-#### 2.2.2.1 创建并初始化功能包
+#### 2.1.2.1 创建并初始化功能包
 
 （这一步不是必须，这里只是为了方便清晰的说明，也可以使用已有的包，在包里新增节点等方法）
 
@@ -970,7 +970,7 @@ catkin_creat_pkg topic_hello_world std_msgs roscpp rospy
 
 ![image-20231108230000306](img/image-20231108230000306.png)
 
-#### 2.2.2.2 确定Topic名称及消息格式
+#### 2.1.2.2 确定Topic名称及消息格式
 
 Topic名称：/hello_world_topic
 
@@ -984,7 +984,7 @@ Topic名称：/hello_world_topic
 string data
 ```
 
-#### 2.2.2.3 实现发布者与订阅者（C++版）
+#### 2.1.2.3 实现发布者与订阅者（C++版）
 
 在创建的 `topic_hello_world` 包路径下有一个 `src` 目录，在这里存储C++源码，我们创建 `topic_hello_world_pub.cpp` 以实现发布者，编辑内容如下：
 
@@ -1148,7 +1148,7 @@ roscore
 
 目前为止，**Topic Hello World** 已经成功了。
 
-#### 2.2.2.4 实现发布者与订阅者（Python版）
+#### 2.1.2.4 实现发布者与订阅者（Python版）
 
 在创建的 `topic_hello_world` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `topic_hello_world_pub.py` 以实现发布者，编辑内容如下：
 
@@ -1264,7 +1264,7 @@ python ./devel/lib/topic_hello_world/topic_hello_world_pub.py
 
 
 
-#### 2.2.2.5 关于Topic Hello World的注意
+#### 2.1.2.5 关于Topic Hello World的注意
 
 启动发布者与订阅者时建议用如下命令：（上述命令只是给初学者的）：
 
@@ -1306,7 +1306,7 @@ setup.sh
 
 
 
-### 拓展1：devel下其他文件与目录的作用
+#### 拓展1：devel下其他文件与目录的作用
 
 ![image-20231110235612869](img/image-20231110235612869.png)
 
@@ -1322,7 +1322,7 @@ setup.sh
 
 
 
-### 拓展2：build 目录下各文件与目录的作用
+#### 拓展2：build 目录下各文件与目录的作用
 
 1. **atomic_configure**: 包含构建配置的原子配置文件，用于确保配置的原子性。这个文件可能包含一些构建系统的配置信息。
 2. **bin**: 包含构建生成的可执行文件。ROS软件包中的节点或其他二进制文件通常会存放在这个目录下。
@@ -1345,13 +1345,13 @@ setup.sh
 
 
 
-### 2.2.3 自定义msg
+### 2.1.3 自定义msg
 
 在 ROS 通信协议中，数据是以约定好的结构传输的，即数据类型，比如Topic使用的msg，Service使用的srv，ROS 中的 std_msgs 封装了一些原生的数据类型，比如：Bool、Char、Float32、Int64、String等，但这些类型结构简单，常常不能满足我们的需要，这时我们可以使用自定义的消息类型。
 
 比如我们创建一个自定义消息，定义一个机器人的ID，位置（x, y）。
 
-#### 2.2.3.1 创建RobotPose.msg
+#### 2.1.3.1 创建RobotPose.msg
 
 我们仍然使用前文创建的 `topic_hello_world` 功能包，结构如下：
 
@@ -1366,7 +1366,7 @@ float64 y
 float64 angle
 ```
 
-#### 2.2.3.2 配置编译文件
+#### 2.1.3.2 配置编译文件
 
 需要对 `CMakeLists.txt` 作以下修改：
 
@@ -1446,7 +1446,7 @@ catkin_package(
 >       DESCRIPTION "Your package description"
 >       AUTHOR "Your Name"
 >     )
->     ```
+>    ```
 > 
 > 2. **设置软件包的依赖项：** `catkin_package` 允许你指定你的软件包依赖于其他ROS软件包的哪些部分。这些依赖项将在构建和运行时被解析和满足。
 >
@@ -1455,7 +1455,7 @@ catkin_package(
 >       ...
 >       CATKIN_DEPENDS roscpp std_msgs message_runtime
 >     )
->     ```
+>    ```
 > 
 > 3. **导出软件包的目标：** 通过 `${PROJECT_NAME}_EXPORTED_TARGETS` 这样的参数，你可以导出软件包的目标，以便其他软件包能够正确地依赖你的软件包，并包含所有必要的目标。
 >
@@ -1464,11 +1464,11 @@ catkin_package(
 >       ...
 >       EXPORTED_TARGETS ${PROJECT_NAME}_EXPORTED_TARGETS
 >     )
->     ```
+>    ```
 > 
 > 总体而言，`catkin_package` 提供了一个中心化的地方，用于指定ROS软件包的基本信息和配置，以便构建系统和其他软件包能够正确地使用和依赖你的软件包。在ROS中，它是配置软件包最重要的命令之一。
 
-#### 2.2.3.3 实现发布者与订阅者（C++版）
+#### 2.1.3.3 实现发布者与订阅者（C++版）
 
 在创建的 `topic_hello_world` 包路径的 `src` 目录中创建 `user_msg_pub.cpp` 以实现发布者，编辑内容如下：
 
@@ -1625,7 +1625,7 @@ rosrun topic_hello_world topic_hello_world_user_msg_sub
 
 目前为止，**Topic Hello World** 的自定义msg已经成功了。
 
-#### 2.2.3.4 实现发布者与订阅者（Python版）
+#### 2.1.3.4 实现发布者与订阅者（Python版）
 
 在 `topic_hello_world` 包路径下的 `scripts` 目录中，创建 `user_msg_pub.py` 以实现发布者，编辑内容如下：
 
@@ -1708,7 +1708,22 @@ rosrun topic_hello_world user_msg_sub.py
 
 
 
+## 2.2 服务通信（Service）
 
+服务通信是基于**请求响应**模式的，是一种应答机制。用于偶然的、对时时性有要求、有一定逻辑处理需求的数据传输场景。
+
+### 2.2.1 Service Hello World
+
+万物始于Hello World，同样，使用Hello World介绍Service的简单使用。
+
+使用Service传输数据时，需要注意以下几点：
+
+- Service名称
+- 消息格式
+- 服务端实现
+- 客户端实现
+
+接下来实现一个简单的 `Service` 服务通信，发布者发布 `Hello Word n` （n代表递增数列）字符串，订阅者接收到后输出到屏幕。
 
 
 
