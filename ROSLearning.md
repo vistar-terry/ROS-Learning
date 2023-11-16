@@ -1708,22 +1708,267 @@ rosrun topic_hello_world user_msg_sub.py
 
 
 
-## 2.2 服务通信（Service）
+## 2.2 服务通讯（Service）
 
-服务通信是基于**请求响应**模式的，是一种应答机制。用于偶然的、对时时性有要求、有一定逻辑处理需求的数据传输场景。
+服务通讯是基于**请求响应**模式的，是一种应答机制。
 
-### 2.2.1 Service Hello World
+用于偶然的、对时时性有要求、有一定逻辑处理需求的数据传输场景。
+
+### 2.2.1 服务通讯模型
+
+服务是一种双向通讯方式，它通过请求和应答的方式传递消息，该模型涉及到三个角色：
+
+- Master (管理者)
+- Server（服务端）
+- Client（客户端）
+
+**Master** 负责保管 **Server** 和 **Client** 的注册信息，并匹配服务名称相同的 **Server** 和 **Client** ，帮助 他们建立连接，连接建立后，**Client** 可以发送请求信息， **Server** 收到请求后返回响应信息。
+
+![02_服务通信模型](img/02_服务通信模型.png)
+
+服务模型通讯流程：
+
+- **0）advertise：服务端注册**
+
+	服务端（Server）向管理者（Master）注册信息，包括RPC地址和Service名字。Master会将服务端的注册信息加入到注册表中。
+
+- **1）客户端注册**
+
+	客户端（Client）向管理者（Master）注册信息，包括Service名字。Master会将客户端（Client）的注册信息加入到注册表中。
+
+- **2）Master匹配信息：牵线搭桥**
+
+	管理者（Master）通过查询注册表发现有匹配的服务端（Server）和客户端（Client），则通过RPC向客户端（Client）发送服务端（Server）的 TCP/UDP 地址信息。
+
+- **3）客户端发送请求信息**
+
+	客户端根据服务端的 TCP/UDP 地址与服务端建立网络连接，并发送请求信息。
+
+- **4）服务端响应请求**
+
+    服务端收到请求数据后，通过处理产生响应数据，通过 TCP/UDP 返回给客户端。
+
+> Note：
+>
+> 1. 上述实现流程中，前三步使用 RPC 协议，最后两步使用 TCP/UDP 协议，默认TCP。
+> 2. 客户端请求时，必须保证服务端已经启动。
+> 3. 服务名相同的客户端可以有多个，服务端只能有1个。
+> 4. 与话题通信不同，服务通信过程中，ROS Master必须处于启动状态。
+
+
+
+### 2.2.2 Service Hello World
 
 万物始于Hello World，同样，使用Hello World介绍Service的简单使用。
 
 使用Service传输数据时，需要注意以下几点：
 
 - Service名称
-- 消息格式
+- 消息格式（srv）
 - 服务端实现
 - 客户端实现
 
-接下来实现一个简单的 `Service` 服务通信，发布者发布 `Hello Word n` （n代表递增数列）字符串，订阅者接收到后输出到屏幕。
+接下来实现一个简单的 `Service` 服务通信，客户端请求启动机器人，服务端启动机器人的各个模块，然后返回执行结果。
+
+#### 2.2.2.1 创建并初始化功能包
+
+首先创建 `service_hello_world` 包，命令如下：
+
+```bash
+catkin_creat_pkg service_hello_world std_srvs roscpp rospy
+```
+
+创建后，文件结构如下：
+
+![image-20231115222159774](img/image-20231115222159774.png)
+
+#### 2.2.2.2 确定Service名称及消息格式
+
+Service名称：/hello_world_service
+
+消息格式：std_srvs::SetBool
+
+消息文件路径：/opt/ros/noetic/share/std_srvs/srv/SetBool.srv
+
+消息文件内容：
+
+```xml
+bool data # e.g. for hardware enabling / disabling
+---
+bool success   # indicate successful run of triggered service
+string message # informational, e.g. for error messages
+```
+
+#### 2.2.2.3 实现服务端与客户端（C++版）
+
+在创建的 `service_hello_world` 包路径下有一个 `src` 目录，在这里存储C++源码，我们创建 `service_hello_world_server.cpp` 以实现服务端，编辑内容如下：
+
+```cpp
+#include <ros/ros.h>
+#include <std_srvs/SetBool.h>
+
+bool dealRobotSwitch(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &resp)
+{
+    bool flag = req.data;
+    ROS_INFO("服务器收到 [%s] 机器人的指令.", flag ? "启动" : "关闭");
+
+    // 逻辑处理
+    if (flag)
+    {
+        ROS_INFO("正在启动机器人各模块...");
+        ros::Duration(2).sleep();
+        // 使用时间模拟随机成功与失败
+        if (ros::Time::now().toNSec() % 2 == 0)
+        {
+            resp.success = true;
+            resp.message = "Hello World.";
+            ROS_INFO("机器人各模块启动成功.");
+        }
+        else
+        {
+            resp.success = false;
+            resp.message = "";
+            ROS_INFO("机器人各模块启动失败.");
+        }
+    }
+    else
+    {
+        ROS_INFO("正在关闭机器人各模块...");
+        ros::Duration(2).sleep();
+        // 模拟成功与失败
+        if (ros::Time::now().toNSec() % 2 == 0)
+        {
+            resp.success = true;
+            resp.message = "Good Night.";
+            ROS_INFO("机器人各模块关闭成功.");
+        }
+        else
+        {
+            resp.success = false;
+            resp.message = "我还能卷";
+            ROS_INFO("机器人各模块关闭失败.");
+        }
+    }
+
+    return true;
+}
+
+int main(int argc, char **argv)
+{
+    setlocale(LC_ALL, "");
+    ros::init(argc, argv, "service_hello_world_server");
+    ros::NodeHandle nh;
+    ros::ServiceServer server = nh.advertiseService("/robotSwitch", dealRobotSwitch);
+    ROS_INFO("robotSwitch 服务已启动...");
+    ros::spin();
+    return 0;
+}
+```
+
+创建 `service_hello_world_client.cpp` 以实现客户端，编辑内容如下：
+
+```cpp
+#include <ros/ros.h>
+#include <std_srvs/SetBool.h>
+
+int main(int argc, char **argv)
+{
+    setlocale(LC_ALL, "");
+    ros::init(argc, argv, "service_hello_world_client");
+    ros::NodeHandle nh;
+    ros::ServiceClient client = nh.serviceClient<std_srvs::SetBool>("/robotSwitch");
+
+    std_srvs::SetBool srv;
+    if (strcmp(argv[1], "on") == 0)
+    {
+        srv.request.data = true;
+    }
+    else if (strcmp(argv[1], "off") == 0)
+    {
+        srv.request.data = false;
+    }
+    else
+    {
+        ROS_WARN("仅支持on和off");
+
+        return 1;
+    }
+
+    if (client.call(srv))
+    {
+        if (srv.response.success)
+        {
+            ROS_INFO("操作成功, %s", srv.response.message.c_str());
+        }
+        else
+        {
+            ROS_ERROR("操作失败, %s", srv.response.message.c_str());
+        }
+    }
+    else
+    {
+        ROS_ERROR("操作失败, 未知错误!");
+    }
+
+    return 0;
+}
+```
+
+修改 `CMakeLists.txt` ，只需添加如下内容：
+
+```cmake
+add_executable(${PROJECT_NAME}_client src/service_hello_world_client.cpp)
+add_executable(${PROJECT_NAME}_server src/service_hello_world_server.cpp)
+
+target_link_libraries(${PROJECT_NAME}_client
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}_server
+  ${catkin_LIBRARIES}
+)
+```
+
+**编译运行**
+
+进入工作空间执行 `catkin_make` 命令编译工程，编译成功后，使用如下命令依次启动服务端和客户端。
+
+```bash
+1. 启动ros master
+roscore
+2. 启动服务端
+rosrun service_hello_world service_hello_world_server
+3. 启动客户端
+rosrun service_hello_world service_hello_world_client
+```
+
+结果如下：
+
+![image-20231116214633246](img/image-20231116214633246.png)
+
+目前为止，**Service Hello World** 已经成功了。
+
+#### 2.2.2.4实现服务端与客户端（Python版）
+
+在创建的 `service_hello_world` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `service_hello_world_server.py` 以实现服务端，编辑内容如下：
+
+```
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
