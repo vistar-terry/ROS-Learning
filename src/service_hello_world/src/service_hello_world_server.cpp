@@ -21,7 +21,7 @@ bool dealRobotSwitch(std_srvs::SetBool::Request &req, std_srvs::SetBool::Respons
         else
         {
             resp.success = false;
-            resp.message = "";
+            resp.message = "再睡一会";
             ROS_INFO("机器人各模块启动失败.\n");
         }
     }
