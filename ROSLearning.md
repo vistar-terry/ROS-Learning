@@ -1822,13 +1822,13 @@ bool dealRobotSwitch(std_srvs::SetBool::Request &req, std_srvs::SetBool::Respons
         {
             resp.success = true;
             resp.message = "Hello World.";
-            ROS_INFO("机器人各模块启动成功.");
+            ROS_INFO("机器人各模块启动成功.\n");
         }
         else
         {
             resp.success = false;
-            resp.message = "";
-            ROS_INFO("机器人各模块启动失败.");
+            resp.message = "再睡一会";
+            ROS_INFO("机器人各模块启动失败.\n");
         }
     }
     else
@@ -1840,13 +1840,13 @@ bool dealRobotSwitch(std_srvs::SetBool::Request &req, std_srvs::SetBool::Respons
         {
             resp.success = true;
             resp.message = "Good Night.";
-            ROS_INFO("机器人各模块关闭成功.");
+            ROS_INFO("机器人各模块关闭成功.\n");
         }
         else
         {
             resp.success = false;
             resp.message = "我还能卷";
-            ROS_INFO("机器人各模块关闭失败.");
+            ROS_INFO("机器人各模块关闭失败.\n");
         }
     }
 
@@ -1894,6 +1894,9 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    // 等待服务启动
+    // ros::service::waitForService("/robotSwitch");
+    // client.waitForExistence();
     if (client.call(srv))
     {
         if (srv.response.success)
@@ -1952,17 +1955,102 @@ rosrun service_hello_world service_hello_world_client
 
 在创建的 `service_hello_world` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `service_hello_world_server.py` 以实现服务端，编辑内容如下：
 
+```python
+import rospy
+from std_srvs.srv import SetBool, SetBoolResponse
+
+
+def dealRobotSwitch(req):
+    flag = req.data
+    rospy.loginfo("服务器收到 [%s] 机器人的指令.", "启动" if flag else "关闭")
+    if flag:
+        rospy.loginfo("正在启动机器人各模块...")
+        if rospy.Time.now().to_nsec() % 2 == 0:
+            rospy.loginfo("机器人各模块启动成功.\n")
+            return SetBoolResponse(True, "Hello World.")
+        else:
+            rospy.logerr("机器人各模块启动失败.\n")
+            return SetBoolResponse(False, "再睡一会")
+    else:
+        rospy.loginfo("正在关闭机器人各模块...")
+        if rospy.Time.now().to_nsec() % 2 == 0:
+            rospy.loginfo("机器人各模块关闭成功.\n")
+            return SetBoolResponse(True, "Good Night.")
+        else:
+            rospy.logerr("机器人各模块关闭失败.\n")
+            return SetBoolResponse(False, "我还能卷")
+
+
+if __name__ == "__main__":
+    rospy.init_node("service_hello_world_server")
+    server = rospy.Service("/robotSwitch", SetBool, dealRobotSwitch)
+    rospy.loginfo("robotSwitch 服务已启动...")
+    rospy.spin()
 ```
 
+创建 `service_hello_world_client.py` 以实现客户端，编辑内容如下：
+
+```python
+import sys
+import rospy
+from std_srvs.srv import SetBool, SetBoolRequest
+
+
+if __name__ == "__main__":
+    rospy.init_node("service_hello_world_client")
+
+    if len(sys.argv) != 2:
+        rospy.logerr("参数个数有误")
+        sys.exit(1)
+
+    flag = False
+    if sys.argv[1] == "on":
+        flag = True
+    elif sys.argv[1] == "off":
+        pass
+    else:
+        rospy.logwarn("仅支持on和off")
+        sys.exit(1)
+
+    rospy.loginfo("客户端请求 [%s] 机器人.", "启动" if flag else "关闭")
+    client = rospy.ServiceProxy("/robotSwitch", SetBool)
+    client.wait_for_service()
+    req = SetBoolRequest()
+    req.data = flag
+    res = client.call(req)
+
+    if res.success:
+        rospy.loginfo("操作成功，%s", res.message)
+    else:
+        rospy.logerr("操作失败，%s", res.message)
 ```
 
+修改 `CMakeLists.txt` ，只需添加如下内容：
 
+```cmake
+catkin_install_python(PROGRAMS
+  scripts/service_hello_world_server.py
+  scripts/service_hello_world_client.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+```
 
+**编译运行**
 
+进入工作空间执行 `catkin_make` 命令编译工程，编译成功后，使用如下命令依次启动服务端和客户端。
 
+```bash
+1. 启动ros master(如果已启动，无需再启动)
+roscore
+2. 启动服务端
+rosrun service_hello_world service_hello_world_server.py
+3. 启动客户端
+rosrun service_hello_world service_hello_world_client.py
+```
 
+结果如下：
 
-
+![image-20231117211133246](img/image-20231117211133246.png)
 
 
 
