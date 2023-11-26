@@ -1011,7 +1011,7 @@ int main(int argc, char **argv)
 
     // 2.初始化 ROS 节点： 命名(唯一)
     // 参数1和参数2 后期为节点传值会使用
-    // 参数3 是节点名称，是一个标识符，需要保证运行后，在 ROS 拓扑网络中唯一
+    // 参数3 是注册到master的节点名称，是一个标识符，需要保证运行后，在 ROS 拓扑网络中唯一
     ros::init(argc, argv, "publisher");
 
     // 3.实例化 ROS 句柄
@@ -2636,17 +2636,15 @@ if __name__ == "__main__":
 
 ## 3.1 ROS的计算图源命名
 
-### 3.1.1 命名空间
+### 3.1.1 命名规则
 
 ROS中的节点、参数、话题和服务统称为计算图源，其命名方式采用灵活的分层结构，便于在复杂的系统中集成和复用。以下是一些命名的示例：
 
 ```bash
 /foo
 /stanford/robot/name
-/wg/node1
+/mq/node1
 ```
-
-计算图源命名是ROS封装的一种重要机制。每个资源都定义在一个命名空间内，该命名空间内还可以创建更多资源。但是处于不同命名空间内的资源不仅可以在所处命名空间内使用，还可以在全局范围内访问。这种命名机制可以有效避免不同命名空间内的命名冲突。
 
 一个有效的命名应该具备以下特点：
 
@@ -2656,68 +2654,216 @@ ROS中的节点、参数、话题和服务统称为计算图源，其命名方�
 
 
 
-### 3.1.2 命名解析
+### 3.1.2 名称空间
 
-计算图源的名称可以分为以下四种：
+计算图源命名是ROS封装的一种重要机制。每个资源都定义在一个名称空间内，该名称空间内还可以创建更多资源。但是处于不同名称空间内的资源不仅可以在所处名称空间内使用，还可以在全局范围内访问。这种命名机制可以有效避免不同名称空间内的命名冲突。
 
-1）基础（base）名称，例如：name。
-2）全局（global）名称，例如：/global/name。
-3）相对（relative）名称，例如：relative/name。
-4）私有（private）名称，例如：~private/name。
+ROS提供以下几种设置名称空间的方法：
 
-`基础名称`：用来描述资源本身，可以看作相对名称的一个子类，上述示例中的name就是一个基础名称。
+- 1）通过编码设置命令参数。调用 `ros::init()` 的ROS程序会接收名为 `__ns` 的命令行参数，可以为程序设置默认的名称空间，如下：
 
-`全局名称`：首字符是左斜杠（/）的名称，由左斜杠分开一系列命名空间，示例中的命名空间为 global。全局名称之所以称为全局，是因为它的解析度最高，可以在全局范围内直接访问。
-
-但是在系统中全局名称越少越好，因为过多的全局名称会直接影响功能包的可移植性。
-
-`相对名称`：全局名称需要列出所有命名空间，在命名空间繁多的复杂系统中使用较为不便，所以可以使用相对名称代替。相对名称由ROS提供默认的命名空间，不需要带有开头的左斜杠。
-
-例如在默认命名空间 `/relative` 内使用相对名称 `name`，解析到全局名称为 `/relative/name`。可见，相对名称的重点是如何确定默认的命名空间，ROS为我们提供了以下三种方式。
-
-- 1）通过命令参数设置。调用 `ros::init()` 的ROS程序会接收名为 `__ns` 的命令行参数，可以为程序设置默认的命名空间，赋值的方式为 `__ns:=default-namespace`。
-
-- 2）在launch文件中设置。在launch文件中可通过设置 `ns` 参数来确定默认命名空间：
-
-```xml
-<node name="turtlesim_node" pkg="turtlesim " type="turtlesim_node" ns="sim1" />
+```cpp
+std::map<std::string, std::string> map;
+map["__ns"] = "namespace";
+ros::init(map, "namespace_learning");
 ```
 
-- 3）使用环境变量设置。也可以在执行ROS程序的终端中设置默认命名空间的环境变量：
+- 2）在launch文件中设置。在launch文件中可通过设置 `ns` 参数来确定默认名称空间：
+
+```xml
+<node pkg="package_name " type="file_name" name="node_name" ns="space_name" />
+```
+
+- 3）命令行中，使用 `rosrun` 命令参数 `__ns:=/xxx` 来指定名称空间：
+
+```bash
+rosrun package_name file_name __ns:=/new_namespace
+```
+
+- 4）使用环境变量设置。也可以在执行ROS程序的终端中设置默认名称空间的环境变量：
 
 ```bash
 export ROS_NAMESPACE=default-namespace
 ```
 
-相比全局名称，相对名称具备良好的移植性，用户可以直接将一个相对命名的节点移植到其他命名空间内，有效防止命名冲突。
 
-`私有名称`：是一个节点内部私有的资源名称，只会在节点内部使用。私有名称以波浪线 `~` 开始，与相对名称一样，其并不包含本身所在的命名空间，需要ROS为其解析；但不同的是，私有名称并不使用当前默认命名空间，而是用节点的全局名称作为命名空间。
+
+### 3.1.3 名称解析
+
+计算图源的名称可以分为以下四种，
+
+- 1）基础（base）名称，例如：name。
+- 2）全局（global）名称，例如：/global/name。
+- 3）相对（relative）名称，例如：relative/name。
+- 4）私有（private）名称，例如：~private/name。
+
+**基础名称：**用来描述资源本身，可以看作相对名称的一个子类，上述示例中的name就是一个基础名称。
+
+**全局名称：**首字符是左斜杠（/）的名称，由左斜杠分开一系列名称空间，示例中的名称空间为 global。全局名称之所以称为全局，是因为它的解析度最高，可以在全局范围内直接访问。
+
+但是在系统中全局名称越少越好，因为过多的全局名称会直接影响功能包的可移植性。
+
+**相对名称：**全局名称需要列出所有名称空间，在名称空间繁多的复杂系统中使用较为不便，所以可以使用相对名称代替。相对名称由ROS提供默认的名称空间，不需要带有开头的左斜杠。
+
+例如在默认名称空间 `/relative` 内使用相对名称 `name`，解析到全局名称为 `/relative/name`。
+
+相比全局名称，相对名称具备良好的移植性，用户可以直接将一个相对命名的节点移植到其他名称空间内，有效防止命名冲突。
+
+**私有名称：**是一个节点内部私有的资源名称，只会在节点内部使用。私有名称以波浪线 `~` 开始，与相对名称一样，其并不包含本身所在的名称空间，需要ROS为其解析；但不同的是，**私有名称并不使用当前默认名称空间，而是用节点的全局名称作为名称空间**。
 
 例如有一个节点的全局名称是 `/sim1/pubvel`，其中的私有名称 `~max_vel` 解析成全局名称即为 `/sim1/pubvel/max_vel`。
 
 总结命名解析方式如下表：
 
-|   节点    |     相对名称(默认)     |       全局名称       |           私有名称            |
-| :-------: | :--------------------: | :------------------: | :---------------------------: |
-|  /node1   |      bar -> /bar       |     /bar -> /bar     |      ~bar -> /node1/bar       |
-| /wg/node2 |     bar -> /wg/bar     |     /bar -> /bar     |     ~bar -> /wg/node2/bar     |
-| /wg/node3 | foo/bar -> /wg/foo/bar | /foo/bar -> /foo/bar | ~foo/bar -> /wg/node3/foo/bar |
+|   节点    | 名称空间 |        相对名称        |       全局名称       |           私有名称            |
+| :-------: | :------: | :--------------------: | :------------------: | :---------------------------: |
+|  /node1   |    /     |      bar -> /bar       |     /bar -> /bar     |      ~bar -> /node1/bar       |
+| /mq/node2 |   /mq    |     bar -> /mq/bar     |     /bar -> /bar     |     ~bar -> /mq/node2/bar     |
+| /mq/node3 |   /mq    | foo/bar -> /mq/foo/bar | /foo/bar -> /foo/bar | ~foo/bar -> /mq/node3/foo/bar |
 
 
 
-### 3.1.3 命名重映射
+### 3.1.4 节点名称重映射
+
+所有ROS节点内的资源名称都可以在节点启动时进行重映射。ROS这一强大的特性甚至可以支持我们同时打开多个相同的节点，而不会发生命名冲突。
+与名称空间类似，ROS也为名称的设置提供了几种方法：
+
+- 1）编码方式。
+
+    - C++实现
+
+    ```cpp
+    // 指定重映射名称
+    std::map<std::string, std::string> map;
+    map["__name"] = "new_name";
+    ros::init(map, "namespace_learning");
+    
+    // 随机重映射名称，会在原有名称后面加时间戳
+    ros::init(argc, argv, "namespace_learning", ros::init_options::AnonymousName);
+    ```
+
+    - Python实现
+
+    ```python
+    rospy.init_node("namespace_learning", anonymous=True)
+    ```
+
+
+- 2）`rosrun` 命令行
+
+    在节点启动时可以使用如下方式重映射命名：
+
+    ```bash
+    rosrun package_name file_name __name:=new_node_name
+    或
+    注意该方法不止会重映射节点名称，如有old_name名称的topic或service，也会被重映射
+    rosrun package_name file_name old_name:=new_node_name
+    ```
+
+- 3）在launch文件中设置
+
+    在launch文件中可通过设置 `name` 参数来设置节点名称：
+
+    ```xml
+    <node pkg="package_name" type="file_name" name="new_node_name" />
+    ```
 
 
 
+### 3.1.5 话题/服务名称重映射
+
+对于话题和服务，通过编码只能设置名称，不能对名称重映射。
+
+上文提到过，通过 `rosrun` 可以对话题和服务名称重映射：
+
+```bash
+rosrun package_name node_name old_name:=new_node_name
+```
+
+通过 launch 文件也可以对话题和服务名称重映射：
+
+```xml
+<node pkg="package_name" type="file_name" name="node_name">
+    <remap from="old_name" to="new_name" />
+</node>
+```
+
+注意，如果同一节点中，如果有相同名字的话题和服务，以上方法会同时对他们的名称重映射。
 
 
 
+## 3.2 工作空间覆盖
+
+ROS开发过程中，可能同时开发多个项目，或开发项目的工作空间和已有的工作空间重名。比如有两个工作空间`ws1`和`ws2`，他们中都有名为`pkg`的包，系统在搜索 `pkg` 时，要搜索哪个包呢？
+
+ROS 会解析 `~/.bashrc` 文件，并生成 `ROS_PACKAGE_PATH` ROS包路径环境变量，该变量中存储了工作空间的搜索优先级。优先级和 `.bashrc` 的配置顺序刚好相反，即后配置的优先级更高。
+
+> Note：
+>
+> 1. 配置工作空间时，要注意覆盖问题
+> 2. 当在 .bashrc 文件中配置多个工作空间后，可能出现不在 ROS_PACKAGE_PATH 中生效的情况，此时，可以删除自定义工作空间的 build 与 devel 目录，重新 catkin_make，然后重新 source .bashrc 文件，问题解决。
 
 
 
+## 3.3 ROS分布式多机通信
+
+ROS是一个分布式系统，同一 ROS Master 可以同时管理分布在多台计算机上多个节点。根据系统的配置方式，任何节点可能随时需要与任何其他节点进行通信。
+
+因此，ROS对网络配置有某些要求：
+
+- 所有端口上的所有机器之间必须有完整的双向连接。
+- 每台计算机必须通过所有其他计算机都可以解析的名称来广播自己。
+
+配置方法如下：
+
+### 3.3.1 保证计算机之间网络可连接
+
+首先要保证多台计算机处于同一网络中，最好分别设置固定IP，如果为虚拟机，需要将网络适配器改为桥接模式。
+
+### 3.3.2 配置host文件
+
+与ROS2相比，其实ROS1是伪分布式的，它需要有一个 ROS Master 作为中心节点，所以对于多台计算机，需要指定一台作为主机来运行 ROS Master，其余计算机作为从机运行其他节点。
+
+为了让多台计算机互相能够认识对方，需要告诉主机有哪些从机，告诉从机主机是谁。通过配置 ` /etc/hosts ` 文件实现，如下：
+
+主机端：
+
+```
+从机1的IP    从机1的计算机名
+从机2的IP    从机2的计算机名
+从机3的IP    从机3的计算机名
+...
+```
+
+从机端：
+
+```
+主机的IP    主机计算机名
+```
 
 
 
+### 3.3.3 配置ROS环境变量
+
+需要把主机和从机的IP与名字告诉ROS，以便 ROS Master 进行管理。编辑 `~/.bashrc` 添加如下内容：
+
+主机端：
+
+```bash
+export ROS_MASTER_URI=http://主机IP:11311
+export ROS_HOSTNAME=主机IP
+```
+
+从机端：
+
+```bash
+export ROS_MASTER_URI=http://主机IP:11311
+export ROS_HOSTNAME=从机IP
+```
+
+注意配置完， `~/.bashrc` 需要 `source` 或重启终端使配置生效。
+
+如果，主从机之间可以互相订阅topic或调用service，那么多机通信就配置成功了。
 
 
 
@@ -3296,7 +3442,7 @@ Subscribers：是该 `topic` 的订阅者节点名。
 rostopic的参数选项如下：
 
 ```bash
-rostopic list <namespace>    # 列出指定命名空间中的topic
+rostopic list <namespace>    # 列出指定名称空间中的topic
 rostopic list -b <bag_file>  # 列出bag文件中的topic
 rostopic list -p  # 只列出发布者
 rostopic list -s  # 只列出订阅者
@@ -3308,7 +3454,7 @@ rostopic list --host  # 按主机名分组列表
 
 ###### rostopic list \<namespace\>
 
-列出指定命名空间中的topic，关于ROS的命名空间，见 [ROS WiKi/Names/Graph Resource Names](http://wiki.ros.org/ROS/Concepts#Names.Names)
+列出指定名称空间中的topic，关于ROS的名称空间，见 [ROS WiKi/Names/Graph Resource Names](http://wiki.ros.org/ROS/Concepts#Names.Names)
 
 ```bash
 rostopic list /up
