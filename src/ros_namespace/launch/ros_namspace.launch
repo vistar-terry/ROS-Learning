@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="ros_namespace" type="ros_namespace_node" name="ros_namespace">
+        <remap from="/namespace_learning" to="/namespace_launch" />
+    </node>
+</launch>
