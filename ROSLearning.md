@@ -2867,9 +2867,83 @@ export ROS_HOSTNAME=从机IP
 
 
 
+# 四、ROS常用组件
+
+## 4.1 launch文件
+
+launch文件用于管理ros节点，它使用 XML 语法，可以同时启动多个节点，也可以对节点做一些配置。launch文件启动时，会判断是否启动了 roscore，如果启动了，则不再启动，否则，会自动调用 roscore。
+
+下面介绍一些 launch 文件的标签：
+
+### 4.1.1 \<launch\>
+
+ launch 文件的根标签，充当其他标签的容器。
+
+#### 4.1.1.1 属性
+
+- deprecated
+
+    告知用户当前 launch 文件已经弃用
+
+    ```xml
+    <launch deprecated="弃用声明"></launch>
+    ```
+
+#### 4.1.1.2 子级标签
+
+所有其它标签都是launch的子级
 
 
 
+### 4.1.2 \<node\>
+
+用于操作 ROS 节点
+
+> 注意：roslaunch 命令不能保证按照 node 的声明顺序来启动节点，因为节点的启动是多进程的
+
+#### 4.1.2.1 属性
+
+- pkg（必选）
+
+    指定节点所属的功能包
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" />
+    </launch>
+    ```
+
+- type（必选）
+
+    节点可执行文件的名称
+
+    ```xml
+    <launch>
+    	<node type="file_name" />
+    </launch>
+    ```
+
+- name（必选）
+
+    节点名称，注册到Master的名称
+
+    ```xml
+    <launch>
+    	<node name="node_name" />
+    </launch>
+    ```
+
+- args（可选）
+
+    传递参数给节点
+
+    ```xml
+    <launch>
+    	<node args="" />
+    </launch>
+    ```
+
+    
 
 
 
