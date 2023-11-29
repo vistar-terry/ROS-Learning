@@ -2903,7 +2903,7 @@ launch文件用于管理ros节点，它使用 XML 语法，可以同时启动多
 
 #### 4.1.2.1 属性
 
-- pkg（必选）
+- pkg="package_name"（必选）
 
     指定节点所属的功能包
 
@@ -2913,39 +2913,158 @@ launch文件用于管理ros节点，它使用 XML 语法，可以同时启动多
     </launch>
     ```
 
-- type（必选）
+- type="file_name"（必选）
 
     节点可执行文件的名称
 
     ```xml
     <launch>
-    	<node type="file_name" />
+    	<node pkg="package_name" type="file_name" />
     </launch>
     ```
 
-- name（必选）
+- name="node_name"（必选）
 
     节点名称，注册到Master的名称
 
     ```xml
     <launch>
-    	<node name="node_name" />
+    	<node pkg="package_name" type="file_name" name="node_name" />
     </launch>
     ```
 
-- args（可选）
+- args="arg1 arg2 arg3"（可选）
 
     传递参数给节点
 
     ```xml
     <launch>
-    	<node args="" />
+    	<node pkg="package_name" type="file_name" name="node_name" args="arg1 arg2 arg3" />
     </launch>
     ```
 
+    有些节点需要传入参数，在使用 launch 文件启动给节点时，可以使用该属性传递参数给节点，如下：
     
+    ```xml
+    # 手动启动节点
+    ./add_two_num 6 9
+    
+    # rosrun 启动节点
+    rosrun add_two_nums add_two_nums 6 9
+    
+    # launch文件启动节点
+    <launch>
+    	<node pkg="add_two_nums" type="add_two_nums" name="add_two_nums" args="6 9" />
+    </launch>
+    ```
+    
+- machine="machine_name"（可选）
 
+    在指定机器上启动节点，需要先使用 \<machine\> 指定机器。
 
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name" machine="machine_name" />
+    </launch>
+    ```
+
+- respawn="true|false"（可选）
+
+    如果节点退出，是否自动重启，默认 false
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name" respawn="true" />
+    </launch>
+    ```
+
+- respawn_delay="10"（可选）
+
+    如果 respawn 为 true, 那么延迟 N 秒后启动节点，默认为0
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name" respawn="true" respawn_delay="10"/>
+    </launch>
+    ```
+
+- required="true|false"（可选）
+
+    该节点是否必须，如果为 true，那么如果该节点退出，将杀死整个 roslaunch，默认为 false
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name" required="true" />
+    </launch>
+    ```
+
+- ns="namespace_name"（可选）
+
+    在指定命名空间中启动节点
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name" ns="namespace_name" />
+    </launch>
+    ```
+
+- clear_params="true|false"
+
+    在启动前，删除节点的私有空间的所有参数，默认为 false
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name" clear_params="true" />
+    </launch>
+    ```
+
+- output="log|screen"
+
+    日志发送目标，可以设置为 log 日志文件，或 screen 屏幕，默认是 log
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name" output="screen" />
+    </launch>
+    ```
+
+- 更多属性见 [node Attributes](http://wiki.ros.org/roslaunch/XML/node)
+
+#### 4.1.2.2 子级标签
+
+- \<env\>
+
+    为节点环境变量设置，属性：
+
+    - name：环境变量的名字
+    - value：环境变量的值
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name">
+    		<env name="environment-variable-name" value="environment-variable-value" />
+    	</node>
+    </launch>
+    ```
+
+- \<remap\>
+
+    为节点设置重新映射参数，属性：
+
+    - from：重新映射的话题名称
+    - to：重映射的新名称
+
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name">
+    		<remap from="/different_topic" to="/needed_topic" />
+    	</node>
+    </launch>
+    ```
+
+- \<rosparam\>
+
+    设置参数
 
 
 
