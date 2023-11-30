@@ -3064,7 +3064,40 @@ launch文件用于管理ros节点，它使用 XML 语法，可以同时启动多
 
 - \<rosparam\>
 
-    设置参数
+    设置参数，属性：
+    
+    - command="load|dump|delete" (optional, default=load)
+    - file="$(find pkg-name)/path/foo.yaml" (load or dump commands)
+    - param="param-name"
+    
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name">
+    		<rosparam command="load" file="$(find rosparam)/example.yaml" />
+    		<rosparam command="delete" param="my/param" />
+            <rosparam param="a_list">[1, 2, 3, 4]</rosparam>
+    	</node>
+    </launch>
+    ```
+    
+    - ns="namespace" (optional)
+    - subst_value="True|False" (optional)
+    
+    ```xml
+    <arg name="whitelist" default="[3, 2]"/>
+    <rosparam param="whitelist" subst_value="True">$(arg whitelist)</rosparam>
+    ```
+    
+- \<param\>
+
+    设置参数，属性：
+
+    - name="namespace/name"
+    - value="value"(optional)
+    - type="str|int|double|bool|yaml"(optional)
+    - textfile="$(find pkg-name)/path/file.txt"(optional)
+    - binfile="$(find pkg-name)/path/file"(optional)
+    - command="command"(optional)
 
 
 
