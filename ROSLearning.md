@@ -3098,6 +3098,143 @@ launch文件用于管理ros节点，它使用 XML 语法，可以同时启动多
     - textfile="$(find pkg-name)/path/file.txt"(optional)
     - binfile="$(find pkg-name)/path/file"(optional)
     - command="command"(optional)
+    
+    ```xml
+    <launch>
+    	<node pkg="package_name" type="file_name" name="node_name">
+            <param name="publish_frequency" type="double" value="10.0" />
+    		<param name="params_a" type="yaml" command="cat '$(find roslaunch)/test/params.yaml'" />
+            <rosparam command="load" file="FILENAME" />
+    	</node>
+    </launch>
+    ```
+
+
+
+### 4.1.3 \<machine\>
+
+`<machine>` 标签声明可以运行 ROS 节点的机器。如果在本地启动所有节点，则不需要此标签。它主要用于声明远程计算机的 SSH 和 ROS 环境变量设置，但也可以使用它来声明有关本地计算机的信息。
+
+#### 4.1.3.1 属性
+
+- name="machine-name" （必选）
+
+    分配给机器的名称。对应 `<node>` 标签标记的 `machine` 的名字。
+
+- address="blah.willowgarage.com"（必选）
+
+    机器的网络地址/主机名。
+
+- env-loader="/opt/ros/fuerte/env.sh"  （**必选，Fuerte 新增功能**）
+
+    指定远程计算机上的环境文件。环境文件必须是一个 shell 脚本，用于设置所有必需的环境变量，然后对提供的参数运行`exec`。
+
+```xml
+<launch>
+  <machine name="foo" address="foo-address" env-loader="/opt/ros/noetic/env.sh" />
+</launch>
+```
+
+- default="true|false|never"（可选）
+
+    将此计算机设置为为其分配节点的默认计算机。默认设置仅适用于稍后在同一范围内定义的节点。注意：如果没有默认计算机，则使用本地计算机。可以通过设置 `default="never"` 来阻止选择机器，在这种情况下只能显式分配机器。
+
+- user="username"（可选）
+
+    用于登录机器的 SSH 用户名。如果不需要，可以省略。
+
+- password="passwhat"（建议不要使用）
+
+    SSH 密码。强烈建议配置 SSH 密钥和 SSH 代理，以便可以使用证书登录。
+
+- timeout="10.0"（可选）
+
+    本机上的 roslaunch 启动失败的超时时间。默认情况下，该时间为 10 秒。
+
+```xml
+<launch>
+  <machine name="foo" address="foo-address" env-loader="/opt/ros/fuerte/env.sh" user="someone"/>
+  <node machine="foo" name="footalker" pkg="test_ros" type="talker.py" />
+</launch>
+```
+
+
+
+### 4.1.4 \<include\>
+
+`<include>` 标签将另一个 roslaunch 文件导入到当前文件中。
+
+#### 4.1.4.1 属性
+
+- file="$(find pkg-name)/path/filename.xml"（必选）
+
+    要包含的文件的名称。
+
+- ns=“foo”（可选）
+
+    在指定命名空间导入文件。
+
+- clear_params=“true|false” （可选，默认值：false）
+
+    在启动之前删除 `<include>` 命名空间中的所有参数。此功能非常危险，应谨慎使用。必须指定`ns`。默认值：`false`。
+
+- pass_all_args="true|false" （可选，默认值：false，roslaunch 版本 1.11.17 新增）
+
+    如果为 `true`，则当前上下文中设置的所有参数，都将添加到为处理包含的文件而创建的子上下文中。可以执行此操作，而不是显式列出要传递的每个参数。
+
+```xml
+<launch>
+	<include file="$(find pkg-name)/path/filename.launch"/>
+</launch>
+```
+
+#### 4.1.4.2 子级标签
+
+- \<env\>
+
+     设置环境变量，属性：
+
+    - name：环境变量的名字
+    - value：环境变量的值
+
+    ```xml
+    <launch>
+    	<include file="$(find pkg-name)/path/filename.launch">
+    		<env name="environment-variable-name" value="environment-variable-value" />
+        </include>
+    </launch>
+    ```
+
+- \<arg\> 
+
+    将参数传递给被包含的文件，属性：
+
+    - name="arg_name"：参数名称。
+    - default="default value"（可选）：参数的默认值。不能与 `value` 属性组合。
+    - value="value"（可选）：参数值。不能与 `default` 属性组合。
+    - doc="description for this arg"（可选）：参数描述，可通过 `roslaunch` 命令的 `--ros-args` 参数来获取此信息。
+    
+    \<arg\>有三种使用方法：
+    
+    - \<arg name="foo" />
+    
+        声明 `foo` 的存在。`foo`必须作为命令行参数（如果是顶级）或通过`<include>`传递（如果包含）传递。
+    
+    - \<arg name="foo" default="1" />
+    
+        使用默认值声明`foo`。`foo` 可以通过命令行参数（如果是顶级）或通过`<include>`传递（如果包含）来覆盖。
+    
+    - \<arg name="foo" value="bar" />
+    
+        用常量值声明`foo`。`foo`的值不能被覆盖。这种用法可以实现启动文件的内部参数化，而无需在更高级别公开该参数化。
+
+
+
+
+
+http://wiki.ros.org/roslaunch/XML/arg
+
+
 
 
 
