@@ -3227,12 +3227,106 @@ launch文件用于管理ros节点，它使用 XML 语法，可以同时启动多
     - \<arg name="foo" value="bar" />
     
         用常量值声明`foo`。`foo`的值不能被覆盖。这种用法可以实现启动文件的内部参数化，而无需在更高级别公开该参数化。
+    
+- 示例：
+
+    有launch文件`1.launch`：
+
+    ```xml
+    <launch>
+      <!-- declare arg to be passed in -->
+      <arg name="hoge" /> 
+    
+      <!-- read value of arg -->
+      <param name="param" value="$(arg hoge)"/>
+    </launch>
+    ```
+
+    `2.launch` 引用 `1.launch`：
+
+    ```xml
+    <include file="included.launch">
+      <!-- all vars that included.launch requires must be set -->
+      <arg name="hoge" value="fuga" />
+    </include>
+    ```
+
+
+
+### 4.1.5 \<remap\>
+
+`<remap>` 可以对 topic 进行重映射
+
+#### 4.1.5.1 属性
+
+- from="original-name"（必选）
+
+    要进行重映射的 topic 名字
+
+- to="new-name"
+
+    重映射的目标 topic 名字
+
+#### 4.1.5.2 注意
+
+- 重映射只会影响重映射之后启动的节点。重映射之前启动的节点不受影响。
+
+
+
+### 4.1.6 \<group\>
+
+`<group>`标签可以对节点分组，具有 ns 属性，可以让节点归属某个命名空间.
+
+- ns="namespace"（可选）
+
+    将节点组分配给指定的命名空间。命名空间可以是全局的或相对的，但不鼓励使用全局命名空间。
+
+- clear_params="true|false"（可选）
+
+    启动前删除组命名空间中的所有参数。此功能非常危险，应谨慎使用。必须指定`ns` 。
+
+#### 4.1.6.2 子级标签
+
+`<group>` 标签相当于顶级标签，只是充当其中标签的容器，这意味着您可以使用任何标签。
+
+所以除了launch 标签外的其他标签，都是它的子级标签。
+
+
+
+### 4.1.7 if和unless
+
+所有标签都支持`if`和`unless`属性，它们根据值来评估包含或排除标签。“1”和“true”被视为真值。“0”和“false”被视为假值。其他值会报错。
+
+- if=”value”
+
+    如果`value`计算结果为 true，则包含标签及其内容。
+
+- unless=”value”
+
+    如果`value`计算结果为 true，则排除标签及其内容。
+
+```xml
+<group if="$(arg foo)">
+  <!-- stuff that will only be evaluated if foo is true -->
+</group>
+
+<param name="foo" value="bar" unless="$(arg foo)" />  
+<!-- This param won't be set when "unless" condition is met -->
+```
+
+
+
+## 4.2 TF坐标变换
 
 
 
 
 
-http://wiki.ros.org/roslaunch/XML/arg
+
+
+
+
+
 
 
 
