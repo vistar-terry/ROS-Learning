@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="topic_hello_world" type="topic_hello_world_pub" name="topic_hello_world_pub" output="screen" />
+    <node pkg="topic_hello_world" type="topic_hello_world_sub" name="topic_hello_world_sub" output="screen" />
+</launch>
