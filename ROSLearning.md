@@ -3316,19 +3316,123 @@ launch文件用于管理ros节点，它使用 XML 语法，可以同时启动多
 
 
 
+### 4.1.8 Launch Hello World
+
+
+
+
+
+
+
+
+
 ## 4.2 TF坐标变换
 
+在机器人系统中，有许多运动机构和传感器，为了描述他们之间的相对位姿关系，分别为他们定义了各自的坐标系，通过坐标系转换，就可以知道每个时刻各个组件的位姿。
+
+ROS中通过TF包封装了常用的坐标系转换工具，目前ROS使用的是TF2，早在ROS Hydro以前，ROS使用的是TF。TF2相对TF，更加易用，效率更高，功能更加丰富。
+
+ROS中通过类似topic的形式发布（广播）与订阅（监听）各组件间的位姿关系，接下来我们介绍这一机制。
+
+### 4.2.1 位姿描述
+
+位姿，即位置和姿态角。在二维空间中，使用二维点和相对于x轴正向的夹角（弧度）描述一个位姿：
+$$
+Pose_{2D}=(x,y; \theta_{x})
+$$
+类似的，在三维空间中，应该使用三维点和相对于xyz三个轴的夹角（弧度）描述一个位姿：
+$$
+Pose_{3D}=(x,y,z; \theta_{x},\theta_{y},\theta_{z})
+$$
+但在执行三维位姿变换时，这种表示会有一些问题。其中相对三轴的角度表示方法我们称为欧拉角（该方法是数学家欧拉提出的），欧拉角变换，需要相对XYZ轴进行三次变换，如果第二次变换角为 $\pm90^\circ$ 时，第一次变换和第三次变换使用同一个轴，这就是欧拉角的万向锁问题。
+
+所以欧拉角并不适用于三维变换计算，但由于其直观性，通常出现在人机交互场景，内部计算通常使用四元数。
+
+四元数是复数空间的定义，即我们升了一个维度来表示三维旋转，一个四元数由一个实部和三个虚部组成：
+$$
+q=q_0+q_1i+q_2j+q_3k
+$$
+其中 $i,j,k$ 满足：
+$$
+\begin{cases}
+\ i^2=j^2=k^2=-1\\
+\ ij=-ji=k\\
+\ jk=-kj=i\\
+\ ki=-ik=j
+\end{cases}
+$$
+ROS的TF2中提供了相关的消息体格式与计算接口。
 
 
 
+### 4.2.2 消息体类型
 
+常用的消息体有：`geometry_msgs/TransformStamped` 和 `geometry_msgs/PoseStamped`
 
+`geometry_msgs/TransformStamped` 用于表示变换的信息（平移+旋转）
 
+`geometry_msgs/PoseStamped` 用于表示坐标点的位姿（位置+姿态角）
 
+#### 4.2.2.1 geometry_msgs/TransformStamped
 
+`geometry_msgs/TransformStamped.msg` 的内容如下：
 
+```yaml
+Header header
+string child_frame_id # the frame id of the child frame
+Transform transform
+```
 
+说明：
 
+它由三部分组成，`header`、`child_frame_id` 和 `transform` ，
+
+其中，`header` 是 `std_msgs/Header` 类型，通常用于记录时间戳和坐标系id，结构如下：
+
+```yaml
+uint32 seq      # 序列号
+time stamp      # 时间戳
+string frame_id # 父坐标系id
+```
+
+`child_frame_id` 用于表示变换中的子坐标系id
+
+`transform` 是该变换的信息，结构如下：
+
+```yaml
+Vector3 translation # 一个三维向量，表示平移
+Quaternion rotation # 一个四元数，表示旋转
+```
+
+使用 `rosmsg info geometry_msgs/TransformStamped` 可以查看 `geometry_msgs/TransformStamped` 的全部信息，如下：
+
+![image-20231210223406402](img/image-20231210223406402.png)
+
+#### 4.2.2.2 geometry_msgs/PoseStamped
+
+`geometry_msgs/PoseStamped` 的内容如下：
+
+```yaml
+Header header
+Pose pose
+```
+
+说明：
+
+它由两部分组成，`header`  和 `pose` ，
+
+同样，`header`  用于记录时间戳和坐标系id，
+
+`pose` 是坐标点的位姿，结构如下：
+
+```yaml
+Point position         # 一个三维坐标，表示位置
+Quaternion orientation # 一个四元数，表示姿态角
+```
+
+同样，使用 `rosmsg info geometry_msgs/PoseStamped` 可以查看 `geometry_msgs/PoseStamped` 的全部信息，如下：
+
+![image-20231210224421439](img/image-20231210224421439.png)
 
 
 
