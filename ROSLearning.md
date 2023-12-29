@@ -3444,9 +3444,151 @@ Quaternion orientation # 一个四元数，表示姿态角
 
 #### 4.2.3.1 静态坐标变换
 
+所谓静态坐标变换，是指两个坐标系之间的相对位置是固定的。比如机器人底盘上安装了一个激光雷达，他和底盘组成一个刚体，它们的相对位姿不会随机器人的运动而变化，他们之间的坐标变换即属于静态坐标变换。
+
+假设激光雷达相对与底盘的欧拉位姿为（0.5, 0.0, 0.3; 0.0, 0.0, 0.0）
+
+雷达检测到的障碍物位置为（2.0, 2.5, 0.3）
+
+若要计算障碍物和底盘的相对位置，就可以通过雷达到底盘的坐标变换来计算，步骤如下：
+
+1. 雷达（laser）发布自己和底盘（base_link）的相对静态坐标
+2. 避障模块监听雷达（laser）和底盘（base_link）的相对坐标关系，并通过`tf` 计算障碍物位置。
 
 
 
+首先创建 `tf2_learning` 包，命令如下：（这一步不是必须，这里只是为了方便清晰的说明，也可以使用已有的包，在包里新增节点等方法）
+
+```bash
+catkin_creat_pkg tf2_learning roscpp rospy geometry_msgs std_msgs tf2 tf2_geometry_msgs tf2_ros
+```
+
+创建后，文件结构如下：
+
+![image-20231229223721024](img/image-20231229223721024.png)
+
+
+
+在创建的 `tf2_learning` 包路径下有一个 `src` 目录，在这里存储C++源码，我们创建 `static_frame_broadcast.cpp` 和 `static_frame_listen.cpp` ，修改 `CMakeLists.txt` ，添加如下内容：
+
+```cmake
+add_executable(${PROJECT_NAME}_broadcast src/static_frame_broadcast.cpp)
+add_executable(${PROJECT_NAME}_listen src/static_frame_listen.cpp)
+
+target_link_libraries(${PROJECT_NAME}_broadcast
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}_listen
+  ${catkin_LIBRARIES}
+)
+```
+
+`static_frame_broadcast.cpp` 实现广播子坐标系相对于父坐标系的静态坐标，内容如下：
+
+```cpp
+#include "ros/ros.h"
+#include "tf2_ros/static_transform_broadcaster.h"
+#include "geometry_msgs/TransformStamped.h"
+#include "tf2/LinearMath/Quaternion.h"
+
+int main(int argc, char **argv)
+{
+    // 初始化 ROS 节点
+    ros::init(argc, argv, "static_frame_broadcast");
+
+    // 创建静态坐标转换广播器
+    tf2_ros::StaticTransformBroadcaster broadcaster;
+
+    // 创建坐标系信息
+    geometry_msgs::TransformStamped ts;
+    // --设置头信息
+    ts.header.seq = 100;
+    ts.header.stamp = ros::Time::now();
+    ts.header.frame_id = "base_link";
+    // --设置子级坐标系
+    ts.child_frame_id = "laser";
+    // --设置子坐标系相对于父坐标系的平移偏移量
+    ts.transform.translation.x = 0.5;
+    ts.transform.translation.y = 0.0;
+    ts.transform.translation.z = 0.3;
+    // --设置子坐标系相对于父坐标系的旋转偏移量
+    // --将欧拉角转换成四元数
+    tf2::Quaternion qtn; // tf2的四元数类
+    qtn.setRPY(0, 0, 0); // 设置欧拉角
+    // 获取旋转的四元数值
+    ts.transform.rotation.x = qtn.getX();
+    ts.transform.rotation.y = qtn.getY();
+    ts.transform.rotation.z = qtn.getZ();
+    ts.transform.rotation.w = qtn.getW();
+
+    // 广播器发布坐标系信息
+    broadcaster.sendTransform(ts);
+
+    ros::spin();
+
+    return 0;
+}
+```
+
+`static_frame_listen.cpp` 实现订阅静态坐标转换关系，并利用该关系将雷达坐标系的点转换到 base_link 坐标系，内容如下：
+
+```cpp
+#include "ros/ros.h"
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/buffer.h"
+#include "geometry_msgs/PointStamped.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+
+int main(int argc, char *argv[])
+{
+    // 初始化 ROS 节点
+    ros::init(argc, argv, "static_frame_listen");
+
+    ros::NodeHandle nh;
+
+    // 创建 TF 订阅节点
+    tf2_ros::Buffer buffer;
+    tf2_ros::TransformListener listener(buffer);
+
+    ros::Rate rate(1);
+    while (ros::ok())
+    {
+        // 生成一个坐标点, 模拟雷达检测到的障碍物坐标点(雷达坐标系下的坐标)
+        geometry_msgs::PointStamped point_laser;
+        point_laser.header.frame_id = "laser";
+        point_laser.header.stamp = ros::Time::now();
+        point_laser.point.x = 2.0;
+        point_laser.point.y = 2.5;
+        point_laser.point.z = 0.3;
+
+        // 转换坐标点, 计算障碍物坐标点在 base_link 下的坐标
+        try
+        {
+            geometry_msgs::PointStamped point_base;
+            point_base = buffer.transform(point_laser, "base_link");
+            ROS_INFO("point_base: (%.2f, %.2f, %.2f), frame: %s",
+                     point_base.point.x, point_base.point.y, point_base.point.z,
+                     point_base.header.frame_id.c_str());
+        }
+        catch (const std::exception &e)
+        {
+            ROS_ERROR("%s", e.what());
+        }
+
+        rate.sleep();
+        ros::spinOnce();
+    }
+
+    return 0;
+}
+```
+
+
+
+
+
+![image-20231224221143279](img/image-20231224221143279.png)
 
 
 
