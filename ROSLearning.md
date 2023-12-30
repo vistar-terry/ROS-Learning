@@ -3442,7 +3442,7 @@ Quaternion orientation # 一个四元数，表示姿态角
 
 模块间的位置关系有两种类型，一种是相对固定的，称为静态坐标变换，一种是相对不固定，随时变化的，称为动态坐标变换。
 
-#### 4.2.3.1 静态坐标变换
+#### 4.2.3.1 静态坐标变换（C++）
 
 所谓静态坐标变换，是指两个坐标系之间的相对位置是固定的。比如机器人底盘上安装了一个激光雷达，他和底盘组成一个刚体，它们的相对位姿不会随机器人的运动而变化，他们之间的坐标变换即属于静态坐标变换。
 
@@ -3584,13 +3584,121 @@ int main(int argc, char *argv[])
 }
 ```
 
+编译后，执行 `rosrun tf2_learning tf2_learning_broadcast` 开始广播坐标，此时打开`rviz`订阅`TF`看到TF树模型，操作与结果如下：
 
-
-
+- 输入命令：rviz
+- 在启动的 rviz 中设置 `Fixed Frame` 为 `base_link`
+- 点击左下的 `Add` 按钮，在弹出的窗口中选择 `TF` 组件，即可显示坐标关系。
 
 ![image-20231224221143279](img/image-20231224221143279.png)
 
+继续执行命令`rosrun tf2_learning tf2_learning_listen`可以看到转换后的坐标，以及所属父坐标系，如下：
 
+![image-20231230184519804](img/image-20231230184519804.png)
+
+其中，`ERROR`是由于节点刚起来时，TF数据还未来得及写入缓存，导致`base_link`不存在，可以发现第二次调用就没有报错了，实际使用中，可以等待要操作的`frame`存在再做转换，如下：
+
+```cpp
+tf2_ros::Buffer buffer;
+tf2_ros::TransformListener listener(buffer);
+// _frameExists()返回指定frame是否存在于tf树中
+if (!buffer._frameExists("base_link"))
+{
+    ROS_WARN("base_link frame does not exist.");
+}
+```
+
+#### 4.2.3.2 静态坐标变换（Python）
+
+在创建的 `tf2_learning` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `tf2_learning_broadcast.py` 以实现坐标广播，编辑内容如下：
+
+```python
+#! /usr/bin/env python
+
+import rospy
+import tf
+import tf2_ros
+from geometry_msgs.msg import TransformStamped
+
+
+if __name__ == "__main__":
+
+    # 初始化 ROS 节点
+    rospy.init_node("static_frame_broadcast_py")
+
+    # 创建静态坐标广播器
+    broadcaster = tf2_ros.StaticTransformBroadcaster()
+
+    # 创建并组织被广播的消息
+    tfs = TransformStamped()
+    # -- 头信息
+    tfs.header.frame_id = "base_link" # 父坐标系
+    tfs.header.stamp = rospy.Time.now()
+    tfs.header.seq = 101
+    # -- 子坐标系
+    tfs.child_frame_id = "laser"
+    # -- 坐标系相对信息
+    # ---- 相对于父坐标系的平移偏移量
+    tfs.transform.translation.x = 0.5
+    tfs.transform.translation.y = 0.0
+    tfs.transform.translation.z = 0.3
+    # ---- 相对于父坐标系的旋转偏移量
+    # ---- 设置欧拉角，并将欧拉角转换成四元数
+    qtn = tf.transformations.quaternion_from_euler(0, 0, 0)
+    tfs.transform.rotation.x = qtn[0]
+    tfs.transform.rotation.y = qtn[1]
+    tfs.transform.rotation.z = qtn[2]
+    tfs.transform.rotation.w = qtn[3]
+
+    # 广播器发送消息
+    broadcaster.sendTransform(tfs)
+
+    # spin
+    rospy.spin()
+```
+
+创建 `tf2_learning_broadcast.py` 以订阅静态坐标转换关系，并利用该关系将雷达坐标系的点转换到 base_link 坐标系，编辑内容如下：
+
+```python
+#! /usr/bin/env python
+
+import rospy
+import tf2_ros
+# 不要使用 geometry_msgs,需要使用 tf2 内置的消息类型
+from tf2_geometry_msgs import PointStamped
+# from geometry_msgs.msg import PointStamped
+
+if __name__ == "__main__":
+    # 初始化 ROS 节点
+    rospy.init_node("static_frame_listen")
+    # 创建 TF 订阅对象
+    buffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(buffer)
+
+    rate = rospy.Rate(1)
+    while not rospy.is_shutdown():
+        # 生成一个坐标点, 模拟雷达检测到的障碍物坐标点(雷达坐标系下的坐标)
+        point_laser = PointStamped()
+        point_laser.header.frame_id = "laser"
+        point_laser.header.stamp = rospy.Time.now()
+        point_laser.point.x = 2.0
+        point_laser.point.y = 2.5
+        point_laser.point.z = 0.3
+
+        try:
+            # 转换坐标点, 计算障碍物坐标点在 base_link 下的坐标
+            point_base = buffer.transform(point_laser, "base_link")
+            rospy.loginfo("point_base: (%.2f, %.2f, %.2f), frame: %s",
+                          point_base.point.x,
+                          point_base.point.y,
+                          point_base.point.z,
+                          point_base.header.frame_id)
+        except Exception as e:
+            rospy.logerr("%s", e)
+
+        # spin
+        rate.sleep()
+```
 
 
 
