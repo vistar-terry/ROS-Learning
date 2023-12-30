@@ -14,6 +14,11 @@ int main(int argc, char *argv[])
     // 创建 TF 订阅节点
     tf2_ros::Buffer buffer;
     tf2_ros::TransformListener listener(buffer);
+    if (!buffer._frameExists("base_link"))
+    {
+        ROS_WARN("base_link frame does not exist.");
+        ros::Duration(1).sleep();
+    }
 
     ros::Rate rate(1);
     while (ros::ok())
