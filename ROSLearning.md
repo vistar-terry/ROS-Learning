@@ -3702,6 +3702,251 @@ if __name__ == "__main__":
 
 
 
+#### 4.2.3.4 动态坐标变换（C++）
+
+所谓动态坐标变换，是指两个坐标系之间的相对位置是变化的。比如机械臂末端执行器与 base_link 之间，移动机器人base_link与world之间。可以理解动态坐标关系是随时间变化的静态坐标关系（即静态是动态对时间的微分）。
+
+我们使用ROS的 `turtlesim` 模拟一个移动机器人，通过`TF`发布它相对世界坐标系的坐标。
+
+在创建的 `tf2_learning` 包路径下的 `src` 目录中创建 `dynamic_frame_broadcast.cpp` 和 `dynamic_frame_listen.cpp` ，修改 `CMakeLists.txt` ，添加如下内容：
+
+```cmake
+add_executable(${PROJECT_NAME}_dynamic_broadcast src/dynamic_frame_broadcast.cpp)
+add_executable(${PROJECT_NAME}_dynamic_listen src/dynamic_frame_listen.cpp)
+
+target_link_libraries(${PROJECT_NAME}_dynamic_broadcast
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}_dynamic_listen
+  ${catkin_LIBRARIES}
+)
+```
+
+`dynamic_frame_broadcast.cpp` 实现广播子坐标系相对于父坐标系的动态坐标关系，内容如下：
+
+```cpp
+/**
+ * @file: dynamic_frame_broadcast.cpp
+ * @brief: 动态的坐标系相对姿态发布
+ * @author: 万俟淋曦(1055311345@qq.com)
+ * @date: 2023-12-30 22:47:33
+ * @modifier:
+ * @date: 2023-12-30 22:47:33
+ */
+
+#include "ros/ros.h"
+#include "turtlesim/Pose.h"
+#include "tf2_ros/transform_broadcaster.h"
+#include "geometry_msgs/TransformStamped.h"
+#include "tf2/LinearMath/Quaternion.h"
+
+void turtle1PoseCallback(const turtlesim::Pose::ConstPtr &pose)
+{
+    // 创建 TF 广播器
+    static tf2_ros::TransformBroadcaster broadcaster;
+
+    // 创建 广播的数据
+    geometry_msgs::TransformStamped tfs;
+    // --头设置
+    tfs.header.frame_id = "world";
+    tfs.header.stamp = ros::Time::now();
+    // --坐标系id
+    tfs.child_frame_id = "turtle1";
+    // --坐标系相对信息设置
+    tfs.transform.translation.x = pose->x;
+    tfs.transform.translation.y = pose->y;
+    tfs.transform.translation.z = 0.0; // 二维, z为0
+    //  --欧拉角转四元数
+    tf2::Quaternion qtn;
+    qtn.setRPY(0, 0, pose->theta); // 二维, 只有偏航角
+    tfs.transform.rotation.x = qtn.getX();
+    tfs.transform.rotation.y = qtn.getY();
+    tfs.transform.rotation.z = qtn.getZ();
+    tfs.transform.rotation.w = qtn.getW();
+
+    // 广播器发布数据
+    broadcaster.sendTransform(tfs);
+}
+
+int main(int argc, char **argv)
+{
+    // 初始化 ROS 节点
+    ros::init(argc, argv, "dynamic_frame_broadcast");
+
+    // 创建 ROS 句柄
+    ros::NodeHandle nh;
+
+    // 创建订阅对象，订阅乌龟的世界位姿
+    ros::Subscriber sub = nh.subscribe<turtlesim::Pose>("/turtle1/pose", 1000, turtle1PoseCallback);
+
+    ros::spin();
+
+    return 0;
+}
+```
+
+`dynamic_frame_listen.cpp` 订阅动态坐标转换关系，并利用该关系将小乌龟坐标系下的坐标转换到 `world` 坐标系，编辑内容如下：
+
+```cpp
+/**
+ * @file: dynamic_frame_listen.cpp
+ * @brief: 订阅动态坐标系并转换相应坐标
+ * @author: 万俟淋曦(1055311345@qq.com)
+ * @date: 2023-12-31 11:55:40
+ * @modifier:
+ * @date: 2023-12-31 11:55:40
+ */
+#include "ros/ros.h"
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/buffer.h"
+#include "geometry_msgs/PointStamped.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h" // 包含TF坐标转换方法
+
+int main(int argc, char **argv)
+{
+    // 初始化 ROS 节点
+    ros::init(argc, argv, "dynamic_frame_listen");
+    ros::NodeHandle nh;
+
+    // 创建 TF 订阅节点
+    tf2_ros::Buffer buffer;
+    tf2_ros::TransformListener listener(buffer);
+
+    ros::Rate r(1);
+    while (ros::ok())
+    {
+        // 生成一个坐标点, 模拟末端执行器坐标系下的点坐标(小乌龟坐标系下的坐标)
+        geometry_msgs::PointStamped point_turtle1;
+        point_turtle1.header.frame_id = "turtle1";
+        point_turtle1.header.stamp = ros::Time();
+        point_turtle1.point.x = 1;
+        point_turtle1.point.y = 1;
+        point_turtle1.point.z = 0;
+
+        // 转换坐标点, 计算小乌龟坐标系下的坐标点在 world 下的坐标
+        try
+        {
+            geometry_msgs::PointStamped point_base;
+            point_base = buffer.transform(point_turtle1, "world");
+            ROS_INFO("point_base: (%.2f, %.2f, %.2f), frame: %s", 
+                point_base.point.x, 
+                point_base.point.y, 
+                point_base.point.z,
+                point_base.header.frame_id.c_str());
+        }
+        catch (const std::exception &e)
+        {
+            ROS_ERROR("%s", e.what());
+        }
+
+        r.sleep();
+        ros::spinOnce();
+    }
+
+    return 0;
+}
+```
+
+编译后，
+
+- 首先开启小乌龟 `rosrun turtlesim turtlesim_node`
+- 执行 `rosrun tf2_learning tf2_learning_dynamic_broadcast` 开始广播坐标，此时打开`rviz`订阅`TF`看到TF树模型
+
+- 输入命令：rviz
+- 在启动的 rviz 中设置 `Fixed Frame` 为 `world`
+- 点击左下的 `Add` 按钮，在弹出的窗口中选择 `TF` 组件，即可显示坐标关系，如下：
+
+![image-20231231122613284](img/image-20231231122613284.png)
+
+继续执行命令`rosrun tf2_learning tf2_learning_listen`可以看到转换后的坐标，以及所属父坐标系
+
+![image-20231231122932914](img/image-20231231122932914.png)
+
+执行命令 `rosrun turtlesim turtle_teleop_key` 使用键盘控制小乌龟移动，可以看到 `rviz`以及转换后的坐标都在同步动态变化。
+
+![Peek 2023-12-31 13-00](img/Peek 2023-12-31 13-00.gif)
+
+#### 4.2.3.5 TF树
+
+对于一个完整的机器人来说，会有很多个坐标系，如下图：
+
+![PR2坐标变换](img/PR2坐标变换.png)
+
+每广播一个坐标关系，ROS都会把他加入到一个列表中维护起来，这个列表就是TF树。
+
+使用以下命令可以把TF树保存为pdf文档（如果没有安装 `tf2_tools` 需要先安装 `sudo apt install ros-noetic-tf2-tools`）：
+
+```bash
+rosrun tf2_tools view_frames.py
+
+执行后会打印入下日志：
+[INFO] [1704000786.800796]: Listening to tf data during 5 seconds...
+[INFO] [1704000791.808397]: Generating graph in frames.pdf file...
+```
+
+实验步骤：
+
+- 运行前文编译的静态坐标转换节点： `rosrun tf2_learning tf2_learning_broadcast`
+- 运行前文编译的动态坐标转换节点：`rosrun tf2_learning tf2_learning_dynamic_broadcast`
+- 启动小乌龟，发布小乌龟的世界坐标位姿：`rosrun turtlesim turtlesim_node`
+- 保存TF树pdf文档：`rosrun tf2_tools view_frames.py`
+- 查看pdf文档：`evince frames.pdf`（也可以直接双击打开文档）
+
+![image-20231231133600028](img/image-20231231133600028.png)
+
+可以发现，我们发布了两组坐标关系`bask_link -> laser` 和 `world -> turtle1` ，`base_link` 与 `world` 的坐标关系没有发布，所以有两棵TF树，现在我们发布`base_link` 与 `world` 的坐标关系来看看效果。
+
+ROS为我们封装了单次发布坐标关系的节点，使用方法如下：
+
+```bash
+rosrun tf2_ros static_transform_publisher param0 param1 param2 param3 param4 param5 param6 param7
+后面有8个参数，依次表示：
+x偏移量 y偏移量 z偏移量 z偏航角度 y俯仰角度 x翻滚角度 父级坐标系 子级坐标系
+```
+
+我们发布 `base_link` 与 `world` 的坐标关系：
+
+位置偏移量为：(0.5, 0.8, 0)
+
+旋转偏移量为：(1.57, 0.0, 0.0)  角度单位为弧度
+
+所以命令如下：
+
+```bash
+rosrun tf2_ros static_transform_publisher 0.5 0.8 0 0 0 1.5 /world /base_link
+```
+
+查看TF树如下：
+
+![image-20231231140607453](img/image-20231231140607453.png)
+
+rviz查看坐标关系如下：
+
+![image-20231231142103939](img/image-20231231142103939.png)
+
+
+
+## 4.3 rosbag
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
