@@ -141,8 +141,10 @@ include_directories(
 add_executable(${PROJECT_NAME}_node src/tf2_learning.cpp)
 add_executable(${PROJECT_NAME}_broadcast src/static_frame_broadcast.cpp)
 add_executable(${PROJECT_NAME}_listen src/static_frame_listen.cpp)
+add_executable(${PROJECT_NAME}_dynamic_broadcast src/dynamic_frame_broadcast.cpp)
+add_executable(${PROJECT_NAME}_dynamic_listen src/dynamic_frame_listen.cpp)
 
-## Rename C++ executable without prefix
+## Rename C++ executable without prefix  
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
@@ -162,6 +164,14 @@ target_link_libraries(${PROJECT_NAME}_broadcast
 )
 
 target_link_libraries(${PROJECT_NAME}_listen
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}_dynamic_broadcast
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}_dynamic_listen
   ${catkin_LIBRARIES}
 )
 
