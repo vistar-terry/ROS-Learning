@@ -2861,7 +2861,7 @@ export ROS_MASTER_URI=http://主机IP:11311
 export ROS_HOSTNAME=从机IP
 ```
 
-注意配置完， `~/.bashrc` 需要 `source` 或重启终端使配置生效。
+注意配置完 `~/.bashrc`后， 需要 `source` 或重启终端使配置生效。
 
 如果，主从机之间可以互相订阅topic或调用service，那么多机通信就配置成功了。
 
