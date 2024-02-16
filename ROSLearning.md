@@ -3929,13 +3929,95 @@ rviz查看坐标关系如下：
 
 ## 4.3 rosbag
 
-有时我们需要将 topic 中的数据保存下来以便后面分析，ROS提供了 `rosbag` 工具集。
+有时我们需要将 topic 中的数据保存下来以便后面分析，为了提供这一功能，ROS提供了 `rosbag` 工具集。
+
+rosbag提供了API接口和命令行工具，其中常见的API包括C++和Python。
+
+### 4.3.1 rosbag C++ API
+
+https://docs.ros.org/en/api/rosbag_storage/html/c++/
+
+#### 4.3.1.1 rosbag::Bag
+
+用于读写bag文件。
+
+头文件：bag.h
+
+##### 常用接口
+
+```cpp
+# 打开bag文件
+Bag (std::string const &filename, uint32_t mode=bagmode::Read)
+   
+# 打开bag文件
+void open (std::string const &filename, uint32_t mode=bagmode::Read)
+
+# 关闭bag文件
+void close()
+
+# 写bag文件
+template<class T >
+void write (std::string const &topic, ros::MessageEvent< T > const &event)
+
+template<class T >
+void write (std::string const &topic, ros::Time const &time, boost::shared_ptr< T > const &msg, boost::shared_ptr< ros::M_string > connection_header=boost::shared_ptr< ros::M_string >())
+
+template<class T >
+void write (std::string const &topic, ros::Time const &time, boost::shared_ptr< T const > const &msg, boost::shared_ptr< ros::M_string > connection_header=boost::shared_ptr< ros::M_string >())
+
+template<class T >
+void write (std::string const &topic, ros::Time const &time, T const &msg, boost::shared_ptr< ros::M_string > connection_header=boost::shared_ptr< ros::M_string >())
+```
 
 
 
+##### 其他接口
+
+```cpp
+# bag文件是否被打开
+bool isOpen () const
+    
+uint32_t 	getChunkThreshold () const
+Get the threshold for creating new chunks. More...
+
+CompressionType 	getCompression () const
+Get the compression method to use for writing chunks. More...
+
+std::string 	getFileName () const
+Get the filename of the bag. More...
+
+uint32_t 	getMajorVersion () const
+Get the major-version of the open bag file. More...
+
+uint32_t 	getMinorVersion () const
+Get the minor-version of the open bag file. More...
+
+BagMode 	getMode () const
+Get the mode the bag is in. More...
+
+uint64_t 	getSize () const
+Get the current size of the bag file (a lower bound) More...
+
+
+Bag & 	operator= (Bag &&other)
+
+void 	setChunkThreshold (uint32_t chunk_threshold)
+Set the threshold for creating new chunks. More...
+
+void 	setCompression (CompressionType compression)
+Set the compression method to use for writing chunks. More...
+
+void 	setEncryptorPlugin (const std::string &plugin_name, const std::string &plugin_param=std::string())
+Set encryptor of the bag file. More...
+
+void 	swap (Bag &)
+
+
+```
 
 
 
+#### 4.3.1.2 rosbag::View
 
 
 
