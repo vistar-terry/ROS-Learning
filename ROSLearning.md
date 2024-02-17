@@ -3933,11 +3933,37 @@ rviz查看坐标关系如下：
 
 rosbag提供了API接口和命令行工具，其中常见的API包括C++和Python。
 
-### 4.3.1 rosbag C++ API
+### 4.3.1 rosbag 命令行
+
+常用命令行
+
+```bash
+rosbag check  	    检查一个包是否可以在当前系统中播放
+rosbag compress  	压缩一个或多个bag文件
+rosbag decompress  	解压缩一个或多个bag文件
+rosbag decrypt  	解密一个或多个bag文件
+rosbag encrypt  	加密一个或多个bag文件
+rosbag filter  	    根据条件过滤bag文件内容
+rosbag fix  	    修复bag文件中的消息，以便在当前系统中播放
+rosbag info  	    查看bag文件简要信息
+rosbag play  	    以时间同步的方式播放一个或多个bag文件的内容
+rosbag record  	    记录一个包含指定topic内容的bag文件
+rosbag reindex      重新索引一个或多个bag文件
+```
+
+#### 4.3.1.1 rosbag check
+
+http://wiki.ros.org/rosbag/migration
+
+
+
+
+
+### 4.3.2 rosbag C++ API
 
 https://docs.ros.org/en/api/rosbag_storage/html/c++/
 
-#### 4.3.1.1 rosbag::Bag
+#### 4.3.2.1 rosbag::Bag
 
 用于读写bag文件。
 
