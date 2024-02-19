@@ -3941,8 +3941,6 @@ rosbag提供了API接口和命令行工具，其中常见的API包括C++和Pytho
 rosbag check  	    检查一个包是否可以在当前系统中播放
 rosbag compress  	压缩一个或多个bag文件
 rosbag decompress  	解压缩一个或多个bag文件
-rosbag decrypt  	解密一个或多个bag文件
-rosbag encrypt  	加密一个或多个bag文件
 rosbag filter  	    根据条件过滤bag文件内容
 rosbag fix  	    修复bag文件中的消息，以便在当前系统中播放
 rosbag info  	    查看bag文件简要信息
@@ -3953,7 +3951,376 @@ rosbag reindex      重新索引一个或多个bag文件
 
 #### 4.3.1.1 rosbag check
 
-http://wiki.ros.org/rosbag/migration
+有时我们需要更新topic的msg，但对于已经录制的bag文件，它使用的是旧的msg，此时的bag文件会与系统的新msg发生冲突，ROS为了解决这一问题，设计了 `bag migration` [包迁移机制](http://wiki.ros.org/rosbag/migration) 。一个bag文件是否需要迁移则可以使用 `rosbag check` 命令检查。
+
+![image-20240219153037017](img/image-20240219153037017.png)
+
+
+
+#### 4.3.1.2 rosbag compress
+
+压缩一个或多个bag文件
+
+目前支持 `bz2`和`lz4` 格式，默认为 `bz2` ，使用 `--lz4` 选项可以选择 `lz4` 压缩格式。
+
+另外，每次压缩文件之前，会备份每个包文件（扩展名为 .orig.bag），如果备份文件已存在（并且未指定 `-f` 选项），则该工具将不会压缩该文件。
+
+该指令选项说明如下：
+
+`compress <bag-files>`
+
+使用`bz2` 格式压缩bag文件
+
+```bash
+rosbag compress *.bag
+```
+
+
+`--output-dir=DIR`
+
+设置文件保存路径
+
+```bash
+rosbag compress --output-dir=compressed *.bag
+```
+
+
+
+`-f, --force`
+
+强制重写备份文件
+
+```bash
+rosbag compress -f *.bag
+```
+
+
+
+`-q, --quiet`
+
+抑制非关键信息
+
+```bash
+rosbag compress -q *.bag
+```
+
+
+
+`-j, --bz2`
+
+使用bz2格式压缩数据
+
+```bash
+rosbag compress -j *.bag
+```
+
+
+
+`--lz4`
+
+使用lz4格式压缩数据
+
+```bash
+rosbag compress --lz4 *.bag
+```
+
+
+
+#### 4.3.1.3 rosbag decompress  	
+
+解压缩一个或多个bag文件
+
+每次解压缩文件之前，会备份每个包文件（扩展名为 .orig.bag），如果备份文件已存在（并且未指定 `-f` 选项），则该工具将不会解压缩该文件。
+
+该指令选项说明如下：
+
+`decompress <bag-files>`
+
+使用`bz2` 格式压缩bag文件
+
+```bash
+rosbag decompress *.bag
+```
+
+
+
+`--output-dir=DIR`
+
+设置文件保存路径
+
+```bash
+rosbag decompress --output-dir=compressed *.bag
+```
+
+
+
+`-f, --force`
+
+强制重写备份文件
+
+```bash
+rosbag decompress -f *.bag
+```
+
+
+
+`-q, --quiet`
+
+抑制非关键信息
+
+```bash
+rosbag decompress -q *.bag
+```
+
+
+
+#### 4.3.1.4 rosbag filter
+
+根据条件过滤bag文件内容
+
+显示与指定python语法的逻辑表达式匹配的消息
+
+```bash
+rosbag filter input.bag output.bag "逻辑表达式"
+rosbag filter input.bag output.bag "m.data=='foo'"
+```
+
+其中，`input.bag`表示过滤之前的bag文件，`output.bag`表示过滤之后的bag文件。
+
+逻辑表达式中的 `m` 表示 `msg`，另外，还有 `topic` 表示 `topic`，`t` 表示 `timestamp`。
+
+该命令的选项说明如下：
+
+`--print=PRINT-EXPRESSION`
+
+将逻辑表达式的匹配情况打印出来
+
+```bash
+rosbag filter --print="'%s @ %d.%d: %s' % (topic, t.secs, t.nsecs, m.data)" big.bag small.bag "topic == '/chatter'"
+```
+
+
+
+#### 4.3.1.5 rosbag fix  	    
+
+修复bag文件中的消息，以便在当前系统中播放
+
+如前`rosbag check` 所述，如果bag文件需要迁移，则可以使用 `rosbag fix` 修复。
+
+```bash
+rosbag fix old.bag repaired.bag myrules.bmr
+```
+
+其中，`old.bag`为修复之前的bag文件，`repaired.bag` 为修复之后的bag文件，`myrules.bmr`为修复规则，修复规则相关详见 [包迁移机制](http://wiki.ros.org/rosbag/migration) 。
+
+
+
+#### 4.3.1.6 rosbag info  	    
+
+查看bag文件简要信息
+
+![image-20240219164709173](img/image-20240219164709173.png)
+
+该命令的选项说明如下：
+
+`-y, --yaml`
+
+以 YAML 格式输出
+
+```bash
+rosbag info -y test.bag
+```
+
+![image-20240219165154308](img/image-20240219165154308.png)
+
+
+
+`-k KEY, --key=KEY`
+
+仅打印给定字段信息（需要配合`-y`选项使用）
+
+![image-20240219165540989](img/image-20240219165540989.png)
+
+
+
+#### 4.3.1.7 rosbag play  	    
+
+以时间同步的方式播放一个或多个bag文件的内容
+
+```bash
+rosbag play test1.bag test2.bag
+```
+
+在播放时可以随时按 `空格键` 以暂停播放，同时暂停播放后，可以按 `s` 键以单步播放。
+
+该命令的选项说明如下：
+`-i, --immediate`
+
+立即播放所有topic
+
+```bash
+rosbag play -i recorded1.bag
+```
+
+
+
+`--pause`
+
+以暂停模式开始播放
+
+```bash
+rosbag play --pause recorded1.bag
+```
+
+
+
+`--queue=SIZE`
+
+使用大小为SIZE的传出队列 (defaults to 0. As of 1.3.3 defaults to 100).
+
+```bash
+rosbag play --queue=1000 recorded1.bag
+```
+
+
+
+`--clock`
+
+发布时钟时间
+
+```bash
+rosbag play --clock recorded1.bag
+```
+
+
+
+`--hz=HZ`
+
+已指定频率Hz发布 (default: 100).
+
+```bash
+rosbag play --clock --hz=200 recorded1.bag
+```
+
+
+
+`-d SEC, --delay=SEC`
+
+每次调用发布者后等待SEC秒，以等待订阅者连接
+
+```bash
+rosbag play -d 5 recorded1.bag
+```
+
+
+
+`-r FACTOR, --rate=FACTOR`
+
+将发布频率乘以 FACTOR.
+
+```bash
+rosbag play -r 10 recorded1.bag
+```
+
+
+
+`-s SEC, --start=SEC`
+
+开始SEC秒进入bag
+
+```bash
+rosbag play -s 5 recorded1.bag
+```
+
+
+
+`-u SEC, --duration=SEC`
+
+仅播放包文件中的 SEC 秒。
+
+```bash
+rosbag play -u 240 recorded1.bag
+```
+
+
+
+`--skip-empty=SEC`
+
+跳过包中超过 SEC 秒没有消息的区域。
+
+```bash
+rosbag play --skip-empty=1 recorded1.bag
+```
+
+
+
+`-l, --loop`
+
+循环播放
+
+```bash
+rosbag play -l recorded1.bag
+```
+
+
+
+`-k, --keep-alive`
+
+在包结束后保持活动状态（对于发布锁定的主题很有用）。
+
+```bash
+rosbag play -k recorded1.bag
+```
+
+
+
+`--try-future-version`
+
+即使用户不知道版本号，仍然尝试打开包文件
+
+
+
+`--topics`
+
+指定要播放的主题
+
+```bash
+rosbag play recorded1.bag --topics /topic1 /topic2 /topic3
+```
+
+
+
+`--pause-topics`
+
+播放期间暂停的主题
+
+
+
+`--bags=BAGS`
+
+打包要播放的文件
+
+
+
+`--wait-for-subscribers`
+
+发布前等待每个主题至少有一个订阅者
+
+
+
+`--rate-control-topic=RATE_CONTROL_TOPIC`
+
+观察给定主题，如果上次发布时间超过 <rate-control-max-delay> 之前，则等到该主题再次发布才能继续播放
+
+
+
+`--rate-control-max-delay=RATE_CONTROL_MAX_DELAY`
+
+暂停前与 <rate-control-topic> 的最大时间差
+
+
+
+
 
 
 
