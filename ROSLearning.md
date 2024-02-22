@@ -4320,9 +4320,180 @@ rosbag play recorded1.bag --topics /topic1 /topic2 /topic3
 
 
 
+#### 4.3.1.8 rosbag record
+
+记录一个包含指定topic内容的bag文件
+
+如果以高带宽录制消息（例如来自摄像机），强烈建议在摄像机所在的同一台计算机上运行`rosbag record`，并将文件目标指定为本地计算机磁盘上。
+
+可以指定多个topic
+
+```bash
+rosbag record rosout tf cmd_vel
+```
+
+该命令的选项说明如下：
+
+`-a, --all`
+
+记录所有topic，订阅topic是通过轮询master注册topic实现的，`rosbag record -a` 可能会错过某些topic的初始消息。
+
+```bash
+rosbag record -a
+```
 
 
 
+`-e, --regex`
+
+通过正则匹配topic
+
+```bash
+rosbag record -e "/(.*)_stereo/(left|right)/image_rect_color"
+```
+
+
+
+`-p, --publish` **New in ROS Melodic**
+
+排除与给定正则表达式匹配的主题（从`-a`或`-e`中减去）。
+
+```bash
+rosbag record -e "/wide_stereo(.*)" -x "(.*)/points(.*)"
+```
+
+
+
+`-d, --duration`
+
+指定录制的包文件的最大持续时间。
+
+```bash
+rosbag record --duration=30 /chatter
+rosbag record --duration=5m /chatter
+rosbag record --duration=2h /chatter
+```
+
+
+
+`--max-splits=MAX_SPLITS` **New in ROS Kinetic**
+
+最多拆分包 MAX_SPLITS 次，然后开始删除最旧的文件。这将创建固定大小或持续时间的记录。
+
+```bash
+rosbag record --split --size 1024 --max-splits 3 /chatter
+rosbag record --split --duration 10m --max-splits 6 /chatter
+```
+
+
+
+`-b SIZE, --buffsize=SIZE`
+
+使用 SIZE MB 的内部缓冲区（默认值：256，0 = 无限）。这是在消息传递到包之前记录器对象的消息队列。降低此值可能会导致消息在到达记录进程之前被丢弃。
+
+```bash
+rosbag record -b 1024 /chatter
+```
+
+
+
+`--chunksize=SIZE`
+
+记录到 SIZE KB 的块（默认值：768）。这是包文件对象内的缓冲区。降低该值将导致更多的磁盘写入。
+
+```bash
+rosbag record --chunksize=1024 /chatter
+```
+
+
+
+`-l NUM, --limit=NUM`
+
+每个topic仅记录 NUM 条消息。
+
+```bash
+rosbag record -l 1000 /chatter
+```
+
+
+
+`--node=NODE`
+
+记录指定节点订阅的所有主题
+
+```bash
+rosbag record --node=/joy_teleop
+```
+
+
+
+`-j, --bz2`
+
+使用 BZ2 压缩。详细信息请参见 rosbag compress
+
+```bash
+rosbag record -j /chatter
+```
+
+
+
+`--lz4`
+
+使用LZ4压缩。详细信息请参见 rosbag compress
+
+```bash
+rosbag record --lz4 /chatter
+```
+
+
+
+`-tcpnodelay`
+
+订阅主题时使用 TCP_NODELAY 传输提示
+
+
+
+`--udp`
+
+订阅主题时使用 UDP 传输提示
+
+
+
+#### 4.3.1.9 rosbag reindex
+
+用于修复损坏的包文件（或 ROS 版本 0.11 之前记录的包文件）。如果由于任何原因未完全关闭包，则索引信息可能会损坏。使用该工具重新读取消息数据并重建索引。
+
+在重新索引包之前，会备份每个包文件（扩展名为`.orig.bag` ）。如果备份文件已存在（并且未指定`-f`选项），则该工具将不会重新索引该文件。
+
+该命令的选项说明如下：
+
+`--output-dir=DIR`
+
+指定保存的路径
+
+```bash
+rosbag reindex --output-dir=reindexed *.bag
+```
+
+
+
+`-f, --force`
+
+强制重写备份文件
+
+```bash
+rosbag reindex -f *.bag
+```
+
+
+
+`-q, --quiet`
+
+抑制非关键信息
+
+```bash
+rosbag reindex -q *.bag
+```
 
 
 
