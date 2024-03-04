@@ -112,11 +112,34 @@ sudo apt update
 
 #### 1.2.3.5 安装ROS
 
-ROS有好几个安装模式，包含的功能有多有少，我选择的完全安装。
-
+ROS有好几个安装模式，包含的功能有多有少，我选择的桌面完整版。
 ```bash
 sudo apt install ros-noetic-desktop-full
 ```
+更多安装模式如下：
+
+##### 5.1 桌面版
+
+仅包含ROS基础功能、机器人通用函数库、rqt工具箱和rviz可视化工具。
+
+```bash
+sudo apt install ros-noetic-desktop
+```
+##### 5.2 基础版
+
+精简了机器人通用函数库、功能包和工具，仅保留了没有界面的基础功能（核心功能包、构建工具和通信机制），可以看作是ROS的最小系统，适合安装在对性能和空间要求较高的控制器上，比如嵌入式系统。
+
+```bash
+sudo apt install ros-noetic-ros-base
+```
+##### 5.3 独立功能包安装
+
+由于不可能一次性把所有功能包都安装，当后期需要某些功能包时，可以使用如下命名单独安装：
+
+```bash
+sudo apt install ros-noetic-PACKAGE
+```
+其中，`PACKAGE` 时功能包名称。
 
 #### 1.2.3.6 设置环境变量
 
@@ -3277,6 +3300,8 @@ launch文件用于管理ros节点，它使用 XML 语法，可以同时启动多
 
 `<group>`标签可以对节点分组，具有 ns 属性，可以让节点归属某个命名空间.
 
+#### 4.1.6.1 属性
+
 - ns="namespace"（可选）
 
     将节点组分配给指定的命名空间。命名空间可以是全局的或相对的，但不鼓励使用全局命名空间。
@@ -4503,7 +4528,7 @@ https://docs.ros.org/en/api/rosbag_storage/html/c++/
 
 #### 4.3.2.1 rosbag::Bag
 
-用于读写bag文件。
+用于写bag文件。
 
 头文件：bag.h
 
@@ -4532,6 +4557,47 @@ void write (std::string const &topic, ros::Time const &time, boost::shared_ptr< 
 template<class T >
 void write (std::string const &topic, ros::Time const &time, T const &msg, boost::shared_ptr< ros::M_string > connection_header=boost::shared_ptr< ros::M_string >())
 ```
+
+示例代码：
+
+```cpp
+#include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <ros/package.h>
+#include <std_msgs/String.h>
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "bag_write");
+
+    std::string packagePath = ros::package::getPath("rosbag_learning");
+    std::string bagsPath = packagePath + "/bags";
+
+    ros::NodeHandle nh;
+    // 创建bag对象
+    rosbag::Bag bag;
+    // 打开文件
+    bag.open(bagsPath+"/test.bag", rosbag::BagMode::Write);
+    // 写文件
+    std_msgs::String msg;
+    msg.data = "hello world";
+    // 写入4帧
+    for (size_t i = 0; i < 4; i++)
+    {
+        bag.write("/chatter", ros::Time::now(), msg);
+    }
+    // 关闭文件
+    bag.close();
+
+    return 0;
+}
+```
+
+编译运行生成 `test.bag` 文件，查看该文件信息，结果如下：
+
+![image-20240304224237679](img/image-20240304224237679.png)
+
+可以看到成功写入了4帧数据。
 
 
 
