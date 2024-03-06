@@ -4604,60 +4604,156 @@ int main(int argc, char **argv)
 ##### 其他接口
 
 ```cpp
-# bag文件是否被打开
-bool isOpen () const
-    
-uint32_t 	getChunkThreshold () const
-Get the threshold for creating new chunks. More...
+// bag文件是否被打开
+bool isOpen() const;
 
-CompressionType 	getCompression () const
-Get the compression method to use for writing chunks. More...
+// 获取文件名
+std::string getFileName() const;
 
-std::string 	getFileName () const
-Get the filename of the bag. More...
+// 获取文件的打开模式，枚举如下
+BagMode getMode() const; 
+enum BagMode
+{
+    Write   = 1,
+    Read    = 2,
+    Append  = 4
+};
 
-uint32_t 	getMajorVersion () const
-Get the major-version of the open bag file. More...
+// 获取文件的主版本号和次版本号
+// ROS bag格式有很多版本，官方不保证不同版本之间的兼容性
+// bag文件第一行记录了当前的版本号，格式如：#ROSBAG VX.Y
+// 旧版本使用#ROSRECORD或#ROSLOG前缀
+// 其中，X是主版本号，Y是次版本号
+uint32_t getMajorVersion() const;                     
+uint32_t getMinorVersion() const;  
 
-uint32_t 	getMinorVersion () const
-Get the minor-version of the open bag file. More...
+// 获取文件大小
+uint64_t getSize() const;    
 
-BagMode 	getMode () const
-Get the mode the bag is in. More...
+// 设置/获取用于写入块的压缩方法，枚举如下
+void setCompression(CompressionType compression); 
+CompressionType getCompression() const;     
+enum CompressionType
+{
+    Uncompressed = 0, // 不压缩
+    BZ2          = 1, // BZ2格式
+    LZ4          = 2, // LZ4格式
+};
 
-uint64_t 	getSize () const
-Get the current size of the bag file (a lower bound) More...
+// 设置/获取 Bag 文件中每个块的最大消息数量
+// 在 ROS Bag 文件中，消息数据被划分为多个“块”(chunks)。每个块可能包含多个消息，并且块的大小是固定的。块的大小决定了 Bag 文件的读写效率和磁盘空间使用。
+// 当向 Bag 文件中写入消息时，ROS 会尝试将消息放入当前的块。如果当前块中的消息数量达到或超过 chunk_threshold，则 ROS 会开始一个新的块来存储后续的消息。
+// 通过调整 chunk_threshold，你可以控制 Bag 文件的读写效率和磁盘空间使用。较小的 chunk_threshold 会导致更多的块，这可能会降低读写效率但可能会节省磁盘空间（因为每个块都有自己的元数据）。而较大的 chunk_threshold 则会提高读写效率，但可能会使用更多的磁盘空间。
+void setChunkThreshold(uint32_t chunk_threshold); 
+uint32_t getChunkThreshold() const;     
+
+// 使用指定的加密插件加密bag文件
+void setEncryptorPlugin(const std::string& plugin_name, const std::string& plugin_param = std::string());
+
+// 交换当前bag对象与参数bag的内容
+void swap(Bag&);
+```
 
 
-Bag & 	operator= (Bag &&other)
 
-void 	setChunkThreshold (uint32_t chunk_threshold)
-Set the threshold for creating new chunks. More...
+#### 4.3.2.2 rosbag::View
 
-void 	setCompression (CompressionType compression)
-Set the compression method to use for writing chunks. More...
+用于读bag文件。
 
-void 	setEncryptorPlugin (const std::string &plugin_name, const std::string &plugin_param=std::string())
-Set encryptor of the bag file. More...
+头文件：view.h
 
-void 	swap (Bag &)
+##### 常用接口
 
+```cpp
+    View(bool const& reduce_overlap = false);
+
+    //! Create a view on a bag
+    /*!
+     * param bag             The bag file on which to run this query
+     * param start_time      The beginning of the time range for the query
+     * param end_time        The end of the time range for the query
+     * param reduce_overlap  If multiple views return the same messages, reduce them to a single message
+     */
+    View(Bag const& bag, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX, bool const& reduce_overlap = false);
+
+    //! Create a view and add a query
+    /*!
+     * param bag             The bag file on which to run this query
+     * param query           The actual query to evaluate which connections to include
+     * param start_time      The beginning of the time range for the query
+     * param end_time        The end of the time range for the query
+     * param reduce_overlap  If multiple views return the same messages, reduce them to a single message
+     */
+    View(Bag const& bag, boost::function<bool(ConnectionInfo const*)> query,
+         ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX, bool const& reduce_overlap = false);
+
+
+    iterator begin();
+    iterator end();
+    uint32_t size();
+
+    //! Add a query to a view
+    /*!
+     * param bag        The bag file on which to run this query
+     * param start_time The beginning of the time range for the query
+     * param end_time   The end of the time range for the query
+     */
+    void addQuery(Bag const& bag, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX);
+
+    //! Add a query to a view
+    /*!
+     * param bag        The bag file on which to run this query
+     * param query      The actual query to evaluate which connections to include
+     * param start_time The beginning of the time range for the query
+     * param end_time   The end of the time range for the query
+     */
+    void addQuery(Bag const& bag, boost::function<bool(ConnectionInfo const*)> query,
+    		      ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX);
+
+    std::vector<const ConnectionInfo*> getConnections();
+
+    ros::Time getBeginTime();
+    ros::Time getEndTime();
 
 ```
 
 
 
-#### 4.3.1.2 rosbag::View
+##### 代码示例
 
+```cpp
+#include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+#include <std_msgs/String.h>
 
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "bag_read");
 
+    std::string packagePath = ros::package::getPath("rosbag_learning");
+    std::string bagsPath = packagePath + "/bags";
+    rosbag::Bag bag;
+    bag.open(bagsPath+"/test.bag"); // BagMode is Read by default
 
+    for (rosbag::MessageInstance const m : rosbag::View(bag))
+    {
+        std_msgs::String::ConstPtr i = m.instantiate<std_msgs::String>();
+        if (i != nullptr)
+        {
+            ROS_INFO("%s", i->data.c_str());
+        }
+    }
 
+    bag.close();
 
+    return 0;
+}
+```
 
+编译运行，读取上文生成的`test.bag` 文件，结果如下：
 
-
-
+![image-20240306235605724](img/image-20240306235605724.png)
 
 
 
