@@ -4524,7 +4524,7 @@ rosbag reindex -q *.bag
 
 ### 4.3.2 rosbag C++ API
 
-https://docs.ros.org/en/api/rosbag_storage/html/c++/
+rosbag 的 C++ API 主要有两个类，用于写bag文件的`Bag`类，和用于读bag文件的`View`类。
 
 #### 4.3.2.1 rosbag::Bag
 
@@ -4665,32 +4665,26 @@ void swap(Bag&);
 ##### 常用接口
 
 ```cpp
-    View(bool const& reduce_overlap = false);
-
-    //! Create a view on a bag
-    /*!
-     * param bag             The bag file on which to run this query
-     * param start_time      The beginning of the time range for the query
-     * param end_time        The end of the time range for the query
-     * param reduce_overlap  If multiple views return the same messages, reduce them to a single message
-     */
-    View(Bag const& bag, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX, bool const& reduce_overlap = false);
-
-    //! Create a view and add a query
-    /*!
-     * param bag             The bag file on which to run this query
-     * param query           The actual query to evaluate which connections to include
-     * param start_time      The beginning of the time range for the query
-     * param end_time        The end of the time range for the query
-     * param reduce_overlap  If multiple views return the same messages, reduce them to a single message
-     */
-    View(Bag const& bag, boost::function<bool(ConnectionInfo const*)> query,
+// 创建一个bag文件视图
+// 将bag中的msg存到vector中，按时间升序排序
+// bag：bag文件
+// query：查询条件函数
+// start_time：查询时间范围的开始时间
+// end_time：查询时间范围的结束时间
+// reduce_overlap：如果返回多个相同的消息，将它们合并为一条消息
+View(bool const& reduce_overlap = false);
+View(Bag const& bag, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX, bool const& reduce_overlap = false);
+View(Bag const& bag, boost::function<bool(ConnectionInfo const*)> query,
          ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX, bool const& reduce_overlap = false);
 
+// 用于遍历vector中的msg
+iterator begin();
+iterator end();
 
-    iterator begin();
-    iterator end();
-    uint32_t size();
+// 获取vector大小（msg个数）
+uint32_t size();
+
+
 
     //! Add a query to a view
     /*!
@@ -4754,6 +4748,16 @@ int main(int argc, char **argv)
 编译运行，读取上文生成的`test.bag` 文件，结果如下：
 
 ![image-20240306235605724](img/image-20240306235605724.png)
+
+
+
+
+
+
+
+
+
+
 
 
 
