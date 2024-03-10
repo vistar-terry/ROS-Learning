@@ -4674,8 +4674,11 @@ void swap(Bag&);
 // reduce_overlap：如果返回多个相同的消息，将它们合并为一条消息
 View(bool const& reduce_overlap = false);
 View(Bag const& bag, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX, bool const& reduce_overlap = false);
-View(Bag const& bag, boost::function<bool(ConnectionInfo const*)> query,
-         ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX, bool const& reduce_overlap = false);
+View(Bag const& bag, boost::function<bool(ConnectionInfo const*)> query, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX, bool const& reduce_overlap = false);
+
+// 查询时间范围的开始/结束时间
+ros::Time getBeginTime();
+ros::Time getEndTime();
 
 // 用于遍历vector中的msg
 iterator begin();
@@ -4684,30 +4687,29 @@ iterator end();
 // 获取vector大小（msg个数）
 uint32_t size();
 
+// 添加查询时间范围
+// bag：bag文件
+// query：查询条件函数
+// start_time：查询时间范围的开始时间
+// end_time：查询时间范围的结束时间
+void addQuery(Bag const& bag, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX);
+void addQuery(Bag const& bag, boost::function<bool(ConnectionInfo const*)> query, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX);
 
+// 获取bag中topic的连接信息，每个topic一个结构体
+// 其中返回结构体定义如下：
+std::vector<const ConnectionInfo*> getConnections();
+struct ROSBAG_STORAGE_DECL ConnectionInfo
+{
+    ConnectionInfo() : id(-1) { }
 
-    //! Add a query to a view
-    /*!
-     * param bag        The bag file on which to run this query
-     * param start_time The beginning of the time range for the query
-     * param end_time   The end of the time range for the query
-     */
-    void addQuery(Bag const& bag, ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX);
+    uint32_t    id;        // topic id
+    std::string topic;     // topic名字
+    std::string datatype;  // topic数据类型，即topic的msg
+    std::string md5sum;    // topic的MD5值
+    std::string msg_def;   // msg的数据类型
 
-    //! Add a query to a view
-    /*!
-     * param bag        The bag file on which to run this query
-     * param query      The actual query to evaluate which connections to include
-     * param start_time The beginning of the time range for the query
-     * param end_time   The end of the time range for the query
-     */
-    void addQuery(Bag const& bag, boost::function<bool(ConnectionInfo const*)> query,
-    		      ros::Time const& start_time = ros::TIME_MIN, ros::Time const& end_time = ros::TIME_MAX);
-
-    std::vector<const ConnectionInfo*> getConnections();
-
-    ros::Time getBeginTime();
-    ros::Time getEndTime();
+    boost::shared_ptr<ros::M_string> header;
+};
 
 ```
 
@@ -4751,9 +4753,40 @@ int main(int argc, char **argv)
 
 
 
+对于 `getConnections()` 函数，示例如下：
 
+```cpp
+#include <ros/ros.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
 
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "bag_read");
 
+    std::string packagePath = ros::package::getPath("rosbag_learning");
+    std::string bagsPath = packagePath + "/bags";
+    rosbag::Bag bag;
+    bag.open(bagsPath+"/test.bag"); // BagMode is Read by default
+
+    rosbag::View view(bag);
+    std::vector<const rosbag::ConnectionInfo*> cInfo = view.getConnections();
+    for (size_t i = 0; i < cInfo.size(); i++)
+    {
+        ROS_INFO("id: %d, topic: %s, dataType: %s, md5: %s, msg_def: %s", 
+            cInfo[i]->id, cInfo[i]->topic.c_str(), cInfo[i]->datatype.c_str(),
+            cInfo[i]->md5sum.c_str(), cInfo[i]->msg_def.c_str());
+    }
+
+    bag.close();
+
+    return 0;
+}
+```
+
+编译运行，结果如下：
+
+![image-20240310225002063](img/image-20240310225002063.png)
 
 
 
