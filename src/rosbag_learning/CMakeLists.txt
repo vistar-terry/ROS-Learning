@@ -166,13 +166,15 @@ target_link_libraries(${PROJECT_NAME}_read_node
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-scripts/rosbag_write.py
-scripts/rosbag_read.py
-scripts/rosbag_flush.py
-scripts/rosbag_reindex.py
-scripts/rosbag_compression.py
-scripts/rosbag_msg_count.py
-
+  scripts/rosbag_write.py
+  scripts/rosbag_read.py
+  scripts/rosbag_flush.py
+  scripts/rosbag_reindex.py
+  scripts/rosbag_compression.py
+  scripts/rosbag_msg_count.py
+  scripts/rosbag_get_time.py
+  scripts/rosbag_topic_info.py
+  scripts/rosbag_encryptor.py
 DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

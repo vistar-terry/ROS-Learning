@@ -4800,7 +4800,7 @@ rosbag 的 Python API 主要位于 `rosbag` 包的 `Bag` 类中，通过 `import
 
 `Bag` 类中的常用接口如下：
 
-#### 4.3.3.1 构造函数
+#### 4.3.3.1 构造函数与关闭文件
 
 ```python
 class Bag(
@@ -4817,6 +4817,8 @@ class Compression:
     NONE = 'none'
     BZ2  = 'bz2'
     LZ4  = 'lz4'
+    
+close(self)
 ```
 
 其中，
@@ -5124,6 +5126,136 @@ with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
     # 打印话题的消息数量
     print(f"Message Count: {message_counts}")
 ```
+
+
+
+#### 4.3.3.9 获取bag文件记录的起止时间
+
+```python
+get_start_time(self)
+get_end_time(self)
+```
+
+`get_start_time` 函数的返回类型是 float，表示以秒为单位的时间戳，其中的小数部分，表示秒的分数。
+
+代码示例：
+
+```python
+import rosbag
+import rospkg
+from datetime import datetime
+
+
+rospack = rospkg.RosPack()
+package_path = rospack.get_path('rosbag_learning')
+bags_path = package_path + "/bags"
+
+# 打开一个存在的 bag 文件
+with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
+
+    # 获取 bag 文件的开始结束时间
+    start_time = bag.get_start_time()
+    end_time = bag.get_end_time()
+
+    # 将时间转换为更易读的字符串格式
+    start_time_str = datetime.fromtimestamp(start_time)
+    end_time_str = datetime.fromtimestamp(end_time)
+
+    # 打印开始结束时间
+    print(f"Bag file start time: {start_time_str}")
+    print(f"Bag file end   time: {end_time_str}")
+```
+
+运行结果如下：
+
+![image-20240317102534862](img/image-20240317102534862.png)
+
+
+
+#### 4.3.3.10 获取话题信息与消息类型
+
+```python
+get_type_and_topic_info(self, topic_filters=None)
+```
+
+其中，`topic_filters` 用于过滤指定的话题，如果没有提供，则分析所有话题。
+
+函数返回值类型如下：
+
+```python
+TypesAndTopicsTuple(dict(str, str), 
+                    dict(str, TopicTuple(str, int, int, float)))
+```
+
+其中各值说明如下：
+
+```python
+TypesAndTopicsTuple(
+    		msg_types{key:type name, val: md5hash}, 
+            topics{key: topic name, 
+                   value: TopicTuple(msg_type: msg type (Ex. "std_msgs/String"),
+                   message_count: the number of messages of the particular type,
+                   connections: the number of connections,
+                   frequency: the data frequency)})
+```
+
+其中，
+
+- `msg_types`：是一个字典，key为msg类型，value为msgMD5值。
+- `topics`：是一个字典，key为topic名称，value是一个元组，其中：
+    - `msg_type`：该topic的消息类型
+    - `message_count`：该topic的消息数量
+    - `connections`：该topic的连接数量
+    - `frequency`：该topic的数据频率
+
+代码示例：
+
+```python
+import rosbag
+import rospkg
+from datetime import datetime
+
+
+rospack = rospkg.RosPack()
+package_path = rospack.get_path('rosbag_learning')
+bags_path = package_path + "/bags"
+
+# 打开一个存在的 bag 文件
+with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
+
+    topic_filters = ['/chatter', '/number']
+    msg_types, topics = bag.get_type_and_topic_info(topic_filters)
+    print("Message Types:")
+    for type_name, md5_hash in msg_types.items():
+        print(f"  {type_name}: {md5_hash}")
+
+    print("Topics:")
+    for type_name, topic_info in topics.items():
+        print("  Topic: {}, Type: {}, MessageCount: {}, Connections: {}, Frequency: {}".format(
+            type_name, 
+            topic_info.msg_type, 
+            topic_info.message_count, 
+            topic_info.connections,
+            topic_info.frequency))
+```
+
+运行结果：
+
+![image-20240317113052497](img/image-20240317113052497.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
