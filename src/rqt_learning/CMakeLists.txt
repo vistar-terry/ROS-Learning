@@ -134,6 +134,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(rqt_learning src/rqt_console.cpp)
+add_executable(rqt_learning1 src/rqt_console1.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -147,6 +148,9 @@ add_executable(rqt_learning src/rqt_console.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(rqt_learning
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(rqt_learning1
   ${catkin_LIBRARIES}
 )
 
