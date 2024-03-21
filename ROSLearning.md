@@ -246,24 +246,11 @@ mkdir -p ros_learning/src
 
 #### 1.3.2.2 初始化工作空间
 
-这一步有两种方法都可以达到初始化工作空间的目的：
-
-方法一：
-
 ```bash
 # 1.进入src目录
 cd ros_learning/src
 # 2.初始化工作空间
 catkin_init_workspace
-```
-
-方法二：
-
-```bash
-# 1.进入ros_learning目录
-cd ros_learning/src
-# 2.编译工作空间
-catkin_make
 ```
 
 #### 1.3.2.3 创建功能包
@@ -5259,6 +5246,8 @@ with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
 
 ### 4.3.1 日志工具
 
+#### 4.3.1.1 rqt_console
+
 `rqt_console` 可以通过图形化查看发布到 `rosout` 的消息，他会不停的收集信息并提供日志过滤功能。
 
 可以在 `rqt` 窗口依次点击 `Plugins` -> `Logging` -> `Console` 启动，也可以直接在终端输入命令 `rqt_console` 启动。界面如下图：
@@ -5295,15 +5284,37 @@ with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
 |  …from location   | 日志位置（在哪个文件的第几行） |
 |      Custom       |         用户自定义条件         |
 
+#### 4.3.1.1 rqt_logger_level
+
+`rqt_logger_level` 可以通过可视化界面设置指定的日志级别。和如下命令有同样的效果：
+
+```
+rosservice call /<node_name>/get_loggers
+rosservice call /<node_name>/set_logger_level 
+```
 
 
 
 
 
-
-
-
-
+1. **name: "ros"**
+    - 级别： "info"
+    - 这个日志记录器是ROS核心的一部分，它记录了整个系统范围内的重要信息。"info"级别的日志通常包含对系统状态的一般性描述，而不是详细的调试信息。
+2. **name: "ros.roscpp"**
+    - 级别： "info"
+    - 这个日志记录器与ROS的C++库（roscpp）相关，记录了roscpp库的操作和事件。同样，"info"级别表示这些消息是一般性的信息，对于日常操作和故障排查可能是有用的。
+3. **name: "ros.roscpp.roscpp_internal"**
+    - 级别： "info"
+    - 这个日志记录器专门用于roscpp库的内部操作。它可能会记录关于库内部工作方式的细节，但仍然以"info"级别进行记录，这意味着默认情况下这些信息不会非常详细。
+4. **name: "ros.roscpp.roscpp_internal.connections"**
+    - 级别： "info"
+    - 这个日志记录器可能用于记录roscpp库内部的网络连接和通信相关的信息。这包括节点之间的通信和连接状态的变化。
+5. **name: "ros.roscpp.superdebug"**
+    - 级别： "warn"
+    - 这是一个特殊的日志记录器，通常用于更详细的调试。"warn"级别意味着它可能会记录一些警告信息，这些信息可能指示潜在的问题或者需要进一步调查的情况。
+6. **name: "ros.rqt_learning1"**
+    - 级别： "debug"
+    - 这个日志记录器似乎是特定于某个名为"rqt_learning1"的ROS包的。"debug"级别表示它会记录详细的调试信息，这对于开发者来说非常有用，尤其是在开发和测试阶段。
 
 
 
