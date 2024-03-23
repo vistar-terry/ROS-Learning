@@ -369,6 +369,26 @@ if __name__ == "__main__":
     rospy.loginfo("Hello World!")
 ```
 
+其中，`rospy.init_node` 用于初始化节点，函数原型如下：
+
+```Python
+init_node(name, argv=None, anonymous=False, log_level=None, disable_rostime=False, disable_rosout=False, disable_signals=False, xmlrpc_port=0, tcpros_port=0)
+```
+
+其中，各参数说明如下：
+
+- `name`：节点名字，type：str
+- `argv`：命令行入参，type：str
+- `anonymous`：以`name`为词干，为节点自动生成名字（True），type：bool
+- `log_level`：设置日志等级（rospy.DEBUG, rospy.INFO, rospy.ERROR, rospy.WARN, rospy.FATAL），type：int
+- `disable_rostime`：取消自动订阅rostime（True）（仅用于内部测试），type：bool
+- `disable_rosout`：取消自动发布rosout（True）（仅用于内部测试），type：bool
+- `disable_signals`：取消信号处理程序（True）。如果 `roslib.is_interactive()`为 True，则 `disable_signals` 强制为True。type：bool
+- `xmlrpc_port`：设置xmlrpc的端口号。type：int
+- `tcpros_port`：如果提供，TCPROS服务器将侦听此端口上的连接。type：int
+
+
+
 #### 1.3.3.2 编辑编译配置文件CMakeList.txt
 
 找到`ros_learning/src/hello_world/CMakeLists.txt`中的`Install`，修改`catkin_install_python`如下：
@@ -5250,7 +5270,9 @@ with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
 
 `rqt_console` 可以通过图形化查看发布到 `rosout` 的消息，他会不停的收集信息并提供日志过滤功能。
 
-可以在 `rqt` 窗口依次点击 `Plugins` -> `Logging` -> `Console` 启动，也可以直接在终端输入命令 `rqt_console` 启动。界面如下图：
+**启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Logging` -> `Console` 启动，或直接在终端输入命令 `rqt_console` 启动。
+
+界面如下图：
 
 ![image-20240317224113426](img/image-20240317224113426.png)
 
@@ -5284,37 +5306,68 @@ with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
 |  …from location   | 日志位置（在哪个文件的第几行） |
 |      Custom       |         用户自定义条件         |
 
-#### 4.3.1.1 rqt_logger_level
+#### 4.3.1.2 rqt_logger_level
 
-`rqt_logger_level` 可以通过可视化界面设置指定的日志级别。和如下命令有同样的效果：
+`rqt_logger_level` 可以通过可视化界面设置指定的日志级别。
+
+**启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Logging` -> `Logger Level` 启动，或直接在终端输入命令 `rqt_logger_level` 启动。
+
+界面如下：
+
+![image-20240323095337280](img/image-20240323095337280.png)
+
+其中，每列说明如下：
+
+| Nodes  |  Loggers   |  Levels  |
+| :----: | :--------: | :------: |
+| 节点名 | 日志记录器 | 日志等级 |
+
+其中，
+
+- `Nodes`：通过如下接口设置
+
+    - ```
+        ros::init(argc, argv, "rqt_console_node"); // C++
+        rospy.init_node('rqt_console_node')  # Python
+        ```
+
+- `Loggers`：日志记录器（loggers）是用于输出诊断信息、调试信息和运行时消息的工具。每个日志记录器通常与特定的ROS包或库相关联，并允许开发者控制不同级别的日志消息的输出。以下对这些日志记录器进行说明：
+    - **ros**
+        - 这个日志记录器是ROS核心的一部分，它记录了整个系统范围内的重要信息。
+    - **ros.roscpp**
+        - 这个日志记录器与ROS的C++库（roscpp）相关，记录了roscpp库的操作和事件。
+    - **ros.roscpp.roscpp_internal**
+        - 这个日志记录器专门用于roscpp库的内部操作。它可能会记录关于库内部工作方式的细节，但以"info"级别进行记录，这意味着默认情况下这些信息不会非常详细。
+    - **ros.roscpp.roscpp_internal.connections**
+        - 这个日志记录器可能用于记录roscpp库内部的网络连接和通信相关的信息。这包括节点之间的通信和连接状态的变化。
+    - **ros.roscpp.superdebug**
+        - 这是一个特殊的日志记录器，通常用于更详细的调试。
+    - **ros.rqt_learning**
+        - 这个日志记录器是特定于名为 `rqt_learning` 的ROS包的。
+
+- `Levels`：日志等级，各等级说明如下：
+    - `Debug`：这是最低级别的日志，用于记录开发过程中的详细信息，通常仅在需要调试时使用。这对于开发者来说非常有用，尤其是在开发和测试阶段。
+    - `Info`：此级别用于记录程序正常运行时的一般信息，比DEBUG级别略高，它包含的信息对日常操作和问题诊断有价值。
+    - `Warn`：警告级别用来指示可能的问题，但不一定会导致程序出错。这通常意味着某些事情不如预期，但程序可以继续运行。
+    - `Error`：此级别用于报告错误情况，这些错误可能会影响程序的功能。
+    - `Fatal`：最高级别的日志，表示出现了严重的错误，程序可能会因此终止运行。
+
+**使用方法：** 依次选择要设置的节点、日志记录器后，直接点选日志等级即可设置。
+
+该可视化界面和如下命令有同样的效果：
 
 ```
 rosservice call /<node_name>/get_loggers
 rosservice call /<node_name>/set_logger_level 
 ```
 
+如下图：
+
+![image-20240323115228400](img/image-20240323115228400.png)
 
 
 
-
-1. **name: "ros"**
-    - 级别： "info"
-    - 这个日志记录器是ROS核心的一部分，它记录了整个系统范围内的重要信息。"info"级别的日志通常包含对系统状态的一般性描述，而不是详细的调试信息。
-2. **name: "ros.roscpp"**
-    - 级别： "info"
-    - 这个日志记录器与ROS的C++库（roscpp）相关，记录了roscpp库的操作和事件。同样，"info"级别表示这些消息是一般性的信息，对于日常操作和故障排查可能是有用的。
-3. **name: "ros.roscpp.roscpp_internal"**
-    - 级别： "info"
-    - 这个日志记录器专门用于roscpp库的内部操作。它可能会记录关于库内部工作方式的细节，但仍然以"info"级别进行记录，这意味着默认情况下这些信息不会非常详细。
-4. **name: "ros.roscpp.roscpp_internal.connections"**
-    - 级别： "info"
-    - 这个日志记录器可能用于记录roscpp库内部的网络连接和通信相关的信息。这包括节点之间的通信和连接状态的变化。
-5. **name: "ros.roscpp.superdebug"**
-    - 级别： "warn"
-    - 这是一个特殊的日志记录器，通常用于更详细的调试。"warn"级别意味着它可能会记录一些警告信息，这些信息可能指示潜在的问题或者需要进一步调查的情况。
-6. **name: "ros.rqt_learning1"**
-    - 级别： "debug"
-    - 这个日志记录器似乎是特定于某个名为"rqt_learning1"的ROS包的。"debug"级别表示它会记录详细的调试信息，这对于开发者来说非常有用，尤其是在开发和测试阶段。
+### 4.3.2 Topic 工具
 
 
 
