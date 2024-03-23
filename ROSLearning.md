@@ -5266,9 +5266,9 @@ with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
 
 ### 4.3.1 日志工具
 
-#### 4.3.1.1 rqt_console
+#### 4.3.1.1 Console
 
-`rqt_console` 可以通过图形化查看发布到 `rosout` 的消息，他会不停的收集信息并提供日志过滤功能。
+`Console` 可以通过图形化查看发布到 `rosout` 的消息，他会不停的收集信息并提供日志过滤功能。
 
 **启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Logging` -> `Console` 启动，或直接在终端输入命令 `rqt_console` 启动。
 
@@ -5306,9 +5306,9 @@ with rosbag.Bag(bags_path+'/pytest.bag', 'r') as bag:
 |  …from location   | 日志位置（在哪个文件的第几行） |
 |      Custom       |         用户自定义条件         |
 
-#### 4.3.1.2 rqt_logger_level
+#### 4.3.1.2 Logger Level
 
-`rqt_logger_level` 可以通过可视化界面设置指定的日志级别。
+`Logger Level` 可以通过可视化界面设置指定的日志级别。
 
 **启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Logging` -> `Logger Level` 启动，或直接在终端输入命令 `rqt_logger_level` 启动。
 
@@ -5368,6 +5368,108 @@ rosservice call /<node_name>/set_logger_level
 
 
 ### 4.3.2 Topic 工具
+
+#### 4.3.2.1 Message Publisher
+
+`Message Publisher` 可以通过可视化界面发布topic。
+
+**启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Topics` -> `Message Publisher` 启动。
+
+界面如下：
+
+![image-20240323160424912](img/image-20240323160424912.png)
+
+可以依次设置`Topic`名字（可自定义）、`Type`（只能选择）、发布频率`Freq`，然后点击`+`添加，如下图：
+
+![image-20240323161401603](img/image-20240323161401603.png)
+
+展开`topic` 列右侧的箭头可现实详细的`msg`信息，并且双击`exoression` 中的项可以设置`msg`中对应字段的值，如下图：
+
+![image-20240323161820059](img/image-20240323161820059.png)
+
+设置好后，选择`topic`列中的方框，即可发布`topic`，如下图：
+
+![image-20240323162142766](img/image-20240323162142766.png)
+
+
+
+#### 4.3.2.2 Message Type Browser
+
+`Message Type Browser` 用于查询`msg`的类型及一些具体信息。
+
+**启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Topics` -> `Message Type Browser` 启动。
+
+界面如下：
+
+![image-20240323163115657](img/image-20240323163115657.png)
+
+可以选择某个`package`里的某个`msg`，点击加号查看具体信息，如下图：
+
+![image-20240323163434587](img/image-20240323163434587.png)
+
+其中，
+
+- `Tree`：是该msg的变量输。
+- `Type`：是该msg的类型。
+- `Path`：是msg和变量在变量树的路径。
+
+另外，选择msg后，右键，有更多选项：
+
+![image-20240323163929128](img/image-20240323163929128.png)
+
+其中，
+
+- `View Text`：查看msg变量树全部展开后的 test 形式，如下：
+
+![image-20240323164413497](img/image-20240323164413497.png)
+
+这和命令 `rosmsg show actionlib/TestAction` 效果一样：
+
+![image-20240323164548173](img/image-20240323164548173.png)
+
+- `View Raw`：查看msg文件的内容，如下：
+
+![image-20240323165002891](img/image-20240323165002891.png)
+
+这和命令 `rosmsg show -r actionlib/TestAction` 效果一样：
+
+![image-20240323165237108](img/image-20240323165237108.png)
+
+- `Remove message`：删掉当前msg的type查询。
+
+
+
+#### 4.3.2.3 Topic Monitor
+
+`Topic Monitor` 用于监测topic信息。
+
+**启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Topics` -> `Topic Monitor` 启动，或直接在终端输入命令 `rqt_topic` 启动。
+
+界面如下：
+
+![image-20240323170953723](img/image-20240323170953723.png)
+
+可以监测的信息包括：`Topic`名称、`Type`、带宽（Bandwidth）、频率（Hz）、变量值。
+
+结合上文介绍的`Message Publisher`给出示例如下：
+
+![image-20240323170843889](img/image-20240323170843889.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
