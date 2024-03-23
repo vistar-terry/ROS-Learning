@@ -5457,21 +5457,73 @@ rosservice call /<node_name>/set_logger_level
 
 
 
+### 4.3.3 Service工具
+
+#### 4.3.3.1 Service Caller
+
+`Service Caller` 用于向服务端请求服务。
+
+**启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Topics` -> `Service Caller` 启动。
+
+界面如下：
+
+![image-20240323174308197](img/image-20240323174308197.png)
+
+选择service后，在下面的 `Request` 一栏中会显示对应的请求数据，可以按需修改。然后点击 `Call` ，在 `Response`中显示服务端的回复数据。
+
+设置日志等级：
+
+![image-20240323175018858](img/image-20240323175018858.png)
+
+获取日志等级：
+
+![image-20240323175113355](img/image-20240323175113355.png)
 
 
 
+#### 4.3.3.2 Service Type Browser
 
+`Service Type Browser` 用于查询`srv`的类型及一些具体信息。
 
+**启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Topics` -> `Service Type Browser` 启动。
 
+界面如下：
 
+![image-20240323175347791](img/image-20240323175347791.png)
 
+可以选择某个`package`里的某个`srv`，点击加号会同时显示`Request`和 `Response`的具体信息，如下图：
 
+![image-20240323175532802](img/image-20240323175532802.png)
 
+其中，
 
+- `Tree`：是该srv的变量输。
+- `Type`：是该srv的类型。
+- `Path`：是srv和变量在变量树的路径。
 
+另外，选择srv后，右键，有更多选项：
 
+![image-20240323163929128](img/image-20240323163929128.png)
 
+其中，
 
+- `View Text`：查看srv变量树全部展开后的 test 形式，如下：
+
+![image-20240323180301458](img/image-20240323180301458.png)
+
+这和命令 `rossrv show map_msgs/GetPointMap` 效果一样：
+
+![image-20240323180450863](img/image-20240323180450863.png)
+
+- `View Raw`：查看srv文件的内容，如下：
+
+![image-20240323180633736](img/image-20240323180633736.png)
+
+这和命令 `rossrv show -r map_msgs/GetPointMap` 效果一样：
+
+![image-20240323180804918](img/image-20240323180804918.png)
+
+- `Remove message`：删掉当前srv的type查询。
 
 
 
