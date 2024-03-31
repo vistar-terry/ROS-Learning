@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // 4.实例化 订阅者 对象
-    ros::Subscriber sub = nh.subscribe<std_msgs::String>("/hello_world_topic", 10, topicCallback);
+    ros::Subscriber sub = nh.subscribe<std_msgs::String>("/hello_world/topic", 10, topicCallback);
 
     // 6.设置循环调用回调函数
     ros::spin(); // 循环读取接收的数据，并调用回调函数处理

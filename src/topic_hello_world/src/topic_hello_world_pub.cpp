@@ -31,7 +31,7 @@ int main(int argc, char **argv)
     // 泛型 std_msgs::String: 发布的消息类型
     // 参数1: 要发布到的话题名称
     // 参数2: 队列中最大保存的消息数，超出此阀值时，先进的先销毁(时间早的先销毁)
-    ros::Publisher pub = nh.advertise<std_msgs::String>("/hello_world_topic", 10);
+    ros::Publisher pub = nh.advertise<std_msgs::String>("/hello_world/topic", 10);
 
     // 延时1s等待publisher在ROS Master注册成功后，再发布消息。
     // ros::Duration(1.0).sleep();
