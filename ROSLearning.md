@@ -5525,6 +5525,44 @@ rosservice call /<node_name>/set_logger_level
 
 - `Remove message`：删掉当前srv的type查询。
 
+### 4.3.4 Action工具
+
+#### 4.3.4.1 Action Type Browser
+
+`Action Type Browser` 与 `Service Type Browser` 类似，请参考 [Service Type Browser](#4.3.3.2 Service Type Browser) 
+
+
+
+### 4.3.5 其他常用rqt工具
+
+#### 4.3.5.1 Node Graph
+
+`Node Graph` 是一个用于显示计算图网络的工具。
+
+**启动方法：**在 `rqt` 窗口依次点击 `Plugins` -> `Introspection` -> `Node Graph` 启动，或直接在终端输入命令 `rqt_graph` 启动。
+
+界面如下：
+
+![image-20240331220138074](img/image-20240331220138074.png)
+
+其中，图中椭圆为节点，矩形为话题，通过左上角的下拉框可以选择图中要显示的对象类型：
+
+|          选项          |         描述         |
+| :--------------------: | :------------------: |
+|       Nodes Only       |      只显示节点      |
+| Nodes/Topics（active） | 显示活动的节点与话题 |
+|  Nodes/Topics（all）   |  显示所有节点与话题  |
+
+还支持通过名称过滤节点与话题。
+
+
+
+
+
+
+
+
+
 
 
 
