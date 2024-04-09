@@ -5563,6 +5563,73 @@ rosservice call /<node_name>/set_logger_level
 
 
 
+# 五、机器人建模与仿真
+
+由于种种原因，有时我们不能直接使用真实的机器人进行调试，这时就需要对机器人进行建模与仿真，在虚拟世界中实现对机器人的控制。
+
+常见的机器人仿真系统有多种，比如 [Webots](https://cyberbotics.com/)、[V-REP](https://www.coppeliarobotics.com/)、[MuJoCo](https://mujoco.org/)、[PyBullet](https://pybullet.org/wordpress/) 以及 [Gazebo](https://gazebosim.org/home) 等。
+
+由于ROS官方默认推荐 Gazebo，我们这里仅以 Gazebo为例介绍机器人的建模与仿真。
+
+
+
+## 5.1 Gazebo 与 URDF 建模
+
+### 5.1.1 Gazebo 介绍
+
+Gazebo是一个功能丰富的开源机器人仿真平台，具备以下特点和功能：
+
+- 动力学仿真：Gazebo支持多种高性能的物理引擎，如ODE、Bullet、SimBody和DART，能够进行精确的动力学计算和仿真。
+- 三维可视化环境：它提供了一个逼真的三维环境，包括光线、纹理和影子，使得仿真场景更加接近现实。
+- 传感器仿真：Gazebo支持模拟多种传感器，如激光雷达、相机等，并能模拟传感器噪声，这对于开发和测试机器人感知系统非常重要。
+- 可扩展插件：用户可以通过开发自定义插件来扩展Gazebo的功能，满足特定的仿真需求。
+- 支持多种机器人模型：Gazebo官方提供了多种机器人模型，如PR2、Pioneer2 DX、TurtleBot等，用户也可以使用自己创建的模型。
+- 网络通信：Gazebo支持TCP/IP传输，可以实现远程仿真，后台仿真和前台显示通过网络通信。
+- 云仿真：Gazebo仿真可以在云平台上运行，如Amazon、Softlayer等，方便进行大规模或分布式仿真。
+
+
+
+Gazebo通常与机器人操作系统（ROS）结合使用。以下是一些基本的使用方法：
+
+- 安装Gazebo：一般安装完整版的ROS会一起安装 Gazebo，如果没有安装 Gazebo，可以使用以下方法安装（以gazebo11为例）：
+
+    ```
+    1.添加源
+    sudo sh -c 'echo "deb http://packages./gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+    
+    2.设置秘钥
+    wget https://packages./gazebo.key -O - | sudo apt-key add -
+    
+    3.更新源
+    sudo apt update
+    
+    4.安装
+    sudo apt install gazebo11 
+    sudo apt install libgazebo11-dev
+    ```
+
+    
+
+- 导入模型：在使用Gazebo时，需要导入机器人和环境的模型。这些模型通常是以 `urdf/sdf` 格式存在的，Gazebo支持这两种格式的文件，并且提供了一些常用的[模型库](https://github.com/osrf/gazebo_models)供用户下载和使用。
+
+- URDF和SDF文件：URDF（Unified Robot Description Format）和SDF（Simulation Description Format）是用于描述机器人和仿真环境的两种文件格式。URDF主要用于描述机器人模型，而SDF则用于描述仿真世界。Gazebo可以处理这两种格式的文件，并且用户可以在这两种格式之间进行转换。
+
+
+
+### 5.1.2 URDF 建模
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
