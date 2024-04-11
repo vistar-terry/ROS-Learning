@@ -1,0 +1,4 @@
+<launch>
+    <param name="urdf_hello_world" textfile="$(find simulation_learning)/urdf/hello_world.urdf" />
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find simulation_learning)/config/hello_world.rviz"/> 
+</launch>
