@@ -3371,6 +3371,8 @@ ROS中通过TF包封装了常用的坐标系转换工具，目前ROS使用的是
 
 ROS中通过类似topic的形式发布（广播）与订阅（监听）各组件间的位姿关系，接下来我们介绍这一机制。
 
+https://wiki.ros.org/tf
+
 ### 4.2.1 位姿描述
 
 位姿，即位置和姿态角。在二维空间中，使用二维点和相对于x轴正向的夹角（弧度）描述一个位姿：
@@ -5623,11 +5625,30 @@ Gazebo通常与机器人操作系统（ROS）结合使用。以下是一些基�
 
 ### 5.1.2 URDF 建模
 
+URDF（Unified Robot Description Format，统一机器人描述格式）是ROS中一个非常重要的机器人模型描述格式，是一个标准的 XML格式，它可以反映机器人各个组件之间的位置关系。ROS同时也提供了URDF文件的C++解析器，可以解析URDF文件中使用XML格式描述的机器人模型。可以在任何文本编辑器中创建URDF文件，如果已经存在机器人的 CAD 模型，则可以使用一些工具将 CAD 模型转换为 URDF。
 
+URDF描述机器人有一个基本思想，就是一切实体皆连杆（link），实体间的相对运动关系为称为关节（joint）。
 
+#### 5.1.2.1 一个简单的实体
 
+首先，我们写一个简单的URDF文件来描述一个圆柱体，如下：
 
+```xml
+<?xml version="1.0"?>
+<robot name="mbot">
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <cylinder length="0.1" radius="0.2"/>
+            </geometry>
+        </visual>
+    </link>
+</robot>
+```
 
+使用rviz查看如下图：
+
+![image-20240411233025927](img/image-20240411233025927.png)
 
 
 
@@ -6140,7 +6161,7 @@ rostopic hz --filter
 
 使用窗口大小（样本数）报告速率，以对速率进行时间局部估计。
 
-如不使用 `-w` 选项，报告的平均速率时从开始通信以来所有通信的平均速率，如使用 `-w` 则为最近 `WINDOW_SIZE` 次通信的平均速率。
+如不使用 `-w` 选项，报告的平均速率是从开始通信以来所有通信的平均速率，如使用 `-w` 则为最近 `WINDOW_SIZE` 次通信的平均速率。
 
 ```bash
  rostopic hz -w WINDOW_SIZE /topic_name
