@@ -5631,7 +5631,7 @@ URDF描述机器人有一个基本思想，就是一切实体皆连杆（link）
 
 #### 5.1.2.1 一个简单的实体
 
-首先，我们写一个简单的URDF文件来描述一个圆柱体，如下：
+首先，感受一下rviz中的显示，我们写一个简单的URDF文件来描述一个圆柱体，如下：
 
 ```xml
 <?xml version="1.0"?>
@@ -5652,9 +5652,104 @@ URDF描述机器人有一个基本思想，就是一切实体皆连杆（link）
 
 
 
+#### 5.1.2.2 rivz显示URDF模型
+
+rviz是怎么找到所指定的URDF模型的呢？
+
+通过向参数服务器查询，没错，URDF模型是储存在参数服务器中的，需要我们写入。
+
+一般是通过 launch 文件写入，如下：
+
+```xml
+<launch>
+    <param name="urdf_hello_world" textfile="$(find simulation_learning)/urdf/hello_world.urdf" />
+</launch>
+```
+
+其中，`urdf_hello_world` 是参数名字，后面供rviz查询模型；`textfile` 代表从文件写入参数，值为文件路径，`$(find simulation_learning)` 是查找`simulation_learning`功能包的路径。
+
+执行上述launch文件即可将你的URDF文件写入ROS参数服务器。
+
+然后打开rviz，初始界面如下图：
+
+![image-20240412203041970](img/image-20240412203041970.png)
+
+然后点击`Add`添加视图，选择`By display type` 中的 `RobotModel` ，如下图：
+
+![image-20240412203333726](img/image-20240412203333726.png)
+
+添加后会发现有报错，查看报错信息如下：
+
+![image-20240412204454038](img/image-20240412204454038.png)
+
+参数 `robot_description` 不存在，这是rviz RobotModel 默认的参数名，我们需要将`Robot Description`一项改成自己设置的参数名，如下图：
+
+![image-20240412205252245](img/image-20240412205252245.png)
+
+可以发现，修改后，模型显示出来了，但仍有报错，报错为 `base_link` 和 `map` 没有转换关系。我们的模型实体名称为 `base_link` ，rviz中设置的固定参考系（Fixed Frame）是 `map`，我们没有告知系统我们的模型在map中的位置，所以会报这个错。将固定参考系设置为我们的 `base_link` 即可，如下图：
+
+![image-20240412212509495](img/image-20240412212509495.png)
+
+#### 5.1.2.3 保存与加载rviz配置
+
+每次用rviz加载模型都需要配置信息，甚至更多，为了方便，我们可以导出rviz配置，下次打开直接加载即可。
+
+导出配置：依次选择 `File` -> `Save Config As` ，然后选择你要保存的位置即可。
+
+加载配置：依次选择 `File` -> `Open Config` ，然后选择你的配置文件即可。
+
+![image-20240412223328474](img/image-20240412223328474.png)
 
 
 
+#### 5.1.2.4 launch文件快速启动
+
+有时不仅会使用rviz打开模型并加载配置，还会发布模型位置信息，有时甚至还会打开多个模型，这时手动打开rviz就显得过于笨拙了，我们使用launch文件可以快速执行上述任务，如下是打开 `hello_world`模型并加载rviz配置的launch内容：
+
+```xml
+<launch>
+    <param name="urdf_hello_world" textfile="$(find simulation_learning)/urdf/hello_world.urdf" />
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find simulation_learning)/config/hello_world.rviz"/> 
+</launch>
+```
+
+其中，`hello_world.rviz` 导出的rviz配置。
+
+
+
+#### 5.1.2.5 package结构
+
+工程中，我们一般把上述文件存放在package结构中，需要时可以作为一个功能包发布，
+
+![image-20240412231113596](img/image-20240412231113596.png)
+
+其中，
+
+- `config` ：存放rviz配置文件
+- `launch` ：存放launch文件
+- `meshes` ：存放模型渲染文件
+- `urdf` ：存放URDF模型文件
+- `src/include` ：存放源文件和头文件
+
+
+
+#### 5.1.2.6 URDF语法
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 
 
 
