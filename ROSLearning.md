@@ -5580,9 +5580,361 @@ rosservice call /<node_name>/set_logger_level
 
 
 
-## 5.1 Gazebo 与 URDF 建模
+## 5.1 URDF 建模
 
-### 5.1.1 Gazebo 介绍
+
+
+### 5.1.1 URDF 建模介绍
+
+URDF（Unified Robot Description Format，统一机器人描述格式）是ROS中一个非常重要的机器人模型描述格式，是一个标准的 XML格式，它可以反映机器人各个组件之间的位置关系。ROS同时也提供了URDF文件的C++解析器，可以解析URDF文件中使用XML格式描述的机器人模型。可以在任何文本编辑器中创建URDF文件，如果已经存在机器人的 CAD 模型，则可以使用一些工具将 CAD 模型转换为 URDF。
+
+URDF描述机器人有一个基本思想，就是一切实体皆连杆（link），实体间的相对运动关系为称为关节（joint）。
+
+#### 5.1.1.1 一个简单的实体
+
+首先，感受一下rviz中的显示，我们写一个简单的URDF文件来描述一个圆柱体，如下：
+
+```xml
+<?xml version="1.0"?>
+<robot name="mbot">
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <cylinder length="0.1" radius="0.2"/>
+            </geometry>
+        </visual>
+    </link>
+</robot>
+```
+
+使用rviz查看如下图：
+
+![image-20240411233025927](img/image-20240411233025927.png)
+
+
+
+#### 5.1.1.2 rivz显示URDF模型
+
+rviz是怎么找到所指定的URDF模型的呢？
+
+通过向参数服务器查询，没错，URDF模型是储存在参数服务器中的，需要我们写入。
+
+一般是通过 launch 文件写入，如下：
+
+```xml
+<launch>
+    <param name="urdf_hello_world" textfile="$(find simulation_learning)/urdf/hello_world.urdf" />
+</launch>
+```
+
+其中，`urdf_hello_world` 是参数名字，后面供rviz查询模型；`textfile` 代表从文件写入参数，值为文件路径，`$(find simulation_learning)` 是查找`simulation_learning`功能包的路径。
+
+执行上述launch文件即可将你的URDF文件写入ROS参数服务器。
+
+然后打开rviz，初始界面如下图：
+
+![image-20240412203041970](img/image-20240412203041970.png)
+
+然后点击`Add`添加视图，选择`By display type` 中的 `RobotModel` ，如下图：
+
+![image-20240412203333726](img/image-20240412203333726.png)
+
+添加后会发现有报错，查看报错信息如下：
+
+![image-20240412204454038](img/image-20240412204454038.png)
+
+参数 `robot_description` 不存在，这是rviz RobotModel 默认的参数名，我们需要将`Robot Description`一项改成自己设置的参数名，如下图：
+
+![image-20240412205252245](img/image-20240412205252245.png)
+
+可以发现，修改后，模型显示出来了，但仍有报错，报错为 `base_link` 和 `map` 没有转换关系。我们的模型实体名称为 `base_link` ，rviz中设置的固定参考系（Fixed Frame）是 `map`，我们没有告知系统我们的模型在map中的位置，所以会报这个错。将固定参考系设置为我们的 `base_link` 即可，如下图：
+
+![image-20240412212509495](img/image-20240412212509495.png)
+
+#### 5.1.1.3 保存与加载rviz配置
+
+每次用rviz加载模型都需要配置信息，甚至更多，为了方便，我们可以导出rviz配置，下次打开直接加载即可。
+
+导出配置：依次选择 `File` -> `Save Config As` ，然后选择你要保存的位置即可。
+
+加载配置：依次选择 `File` -> `Open Config` ，然后选择你的配置文件即可。
+
+![image-20240412223328474](img/image-20240412223328474.png)
+
+
+
+#### 5.1.1.4 launch文件快速启动
+
+有时不仅会使用rviz打开模型并加载配置，还会发布模型位置信息，有时甚至还会打开多个模型，这时手动打开rviz就显得过于笨拙了，我们使用launch文件可以快速执行上述任务，如下是打开 `hello_world`模型并加载rviz配置的launch内容：
+
+```xml
+<launch>
+    <param name="urdf_hello_world" textfile="$(find simulation_learning)/urdf/hello_world.urdf" />
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find simulation_learning)/config/hello_world.rviz"/> 
+</launch>
+```
+
+其中，`hello_world.rviz` 导出的rviz配置。
+
+
+
+#### 5.1.1.5 package结构
+
+工程中，我们一般把上述文件存放在package结构中，需要时可以作为一个功能包发布，
+
+![image-20240412231113596](img/image-20240412231113596.png)
+
+其中，
+
+- `config` ：存放rviz配置文件
+- `launch` ：存放launch文件
+- `meshes` ：存放模型渲染文件
+- `urdf` ：存放URDF模型文件
+- `src/include` ：存放源文件和头文件
+
+
+
+### 5.1.2 URDF 语法
+
+URDF文件中使用XML格式描述的机器人模型，下面介绍URDF的XML标签。
+
+#### 5.1.2.1 robot标签
+
+机器人描述文件中的根元素必须是**robot**，所有其他元素必须封装在其中。
+
+**属性**
+
+- name：主文件必须具有名称属性。 name属性在包含的文件中是可选的。如果在附加包含文件中指定属性名称，则其值必须与主文件中的值相同。
+
+**子标签**
+
+| 标签   | 描述                         |
+| ------ | ---------------------------- |
+| link   | 连杆                         |
+| joint  | 关节，描述连杆之间的运动关系 |
+| gazebo | 用于描述在gazebo中模拟的信息 |
+
+**示例**
+
+```xml
+<robot name="mbot">
+    <link> ... </link>
+    <joint> ... </joint>
+</robot>
+```
+
+
+
+#### 5.1.2.2 link标签
+
+link 元素用于描述具有惯性、视觉特征和碰撞属性的刚体。
+
+![惯性.png](img/urdf_inertial.png)
+
+**属性**
+
+- name：link的名称。
+
+**子标签**
+
+注：`<…>` 代表标签，`xyz` 等代表属性，`++` 等代表下一级。
+
+| 标签或属性                   | 描述                                                         | 示例        |
+| ---------------------------- | ------------------------------------------------------------ | ----------- |
+| \<inertial>                  | 描述连杆的质量、质心位置及其中心惯性属性（如果未指定，则默认为零质量和零惯性） |             |
+| + \<origin>                  | 该姿态（平移、旋转）描述了连杆质心坐标系 C 相对于连杆坐标系 L 的位置和方向。 |             |
+| ++ xyz                       | 从 Lo（连杆坐标系原点）到 Co（连杆质心）的位置向量，表示为 **xL̂x + yL̂y + zL̂z**，其中**L̂x、L̂y、L̂z**是连杆坐标系 L 的正交单位向量。默认为零向量 | 2.0 0 -3    |
+| ++ rpy                       | 质心 C 的单位向量 **(Ĉx, Ĉy, Ĉz)** 相对于连杆系 L的方向，表示为以弧度表示的欧拉旋转 (rpy) 序列。注意：**(Ĉx, Ĉy, Ĉz)** 不需要与连杆的惯性主轴对齐。 | 0.1 1 0.5   |
+| + \<mass>                    | 连杆的质量，由该元素的**value**属性表示                      |             |
+| ++ value                     | 质量数值，单位：kg                                           | 2.5         |
+| + \<inertia>                 | 对于固定在质心坐标系 C 上的单位向量 **(Ĉx, Ĉy, Ĉz)** ，该连杆的惯性矩**ixx、iyy、izz**以及关于 Co（连杆质心）的惯性积 **ixy、ixz、iyz。** |             |
+| ++ ixx<br/>++ iyy<br/>++ izz | 惯性矩                                                       |             |
+| ++ ixy<br/>++ ixz<br/>++ iyz | 惯性积                                                       |             |
+|                              |                                                              |             |
+| \<visual>                    | 连杆的视觉属性。该元素指定对象的形状（box、cylinder等）以用于可视化。**注意：**同一个连杆可以存在多个 \<visual> 实例，连杆的最终形状由他们定义的几何图形融合决定。 |             |
+| + name                       | 指定连杆几何图形的名称。用于外部引用连杆几何形状。 可选      |             |
+| + \<origin>                  | 视觉元素的参考系相对于连杆参考系的位姿。可选                 |             |
+| ++ xyz                       | 平移                                                         |             |
+| ++ rpy                       | 固定轴旋转角                                                 |             |
+| + \<geometry>                | 视觉对象的几何形状，选择如下之一                             |             |
+| ++ \<box>                    | 立方体，原点位于几何中心                                     |             |
+| +++ size                     | 长宽高，单位：m                                              |             |
+| ++ \<cylinder>               | 圆柱体，原点位于几何中心                                     |             |
+| +++ length                   | 高，单位：m                                                  |             |
+| +++ radius                   | 半径，单位：m                                                |             |
+| ++ \<sphere>                 | 球体，，原点位于几何中心                                     |             |
+| +++ radius                   | 半径，单位：m                                                |             |
+| ++ \<mesh>                   | 外部导入的网格模型                                           |             |
+| +++ filename                 | 模型文件路径，建议使用 `package://<packagename>/<path>` 格式，以便可以自动查找特定包下的模型文件。文件推荐 `.dae` 格式。 |             |
+| + \<material>                | 视觉元素的材质。允许在 `robot` 元素中枚举所需材质，然后在 `link` 元素中按名称引用。 |             |
+| ++ name                      | 名称                                                         |             |
+| ++ \<color>                  | 颜色                                                         |             |
+| +++ rgba                     | 红绿蓝和透明度，数值范围为 [0,1]                             | 0.2 0 0.8 1 |
+| +++ \<texture>               | 外部导入的外观图片                                           |             |
+| +++ filename                 | 文件路径                                                     |             |
+|                              |                                                              |             |
+| \<collision>                 | 连杆的碰撞属性，注意：这可能与连杆的视觉属性不同，例如，通常使用更简单的碰撞模型来减少计算时间。 同一连杆可以存在多个 \<collision> 实例。连杆的最终碰撞模型由他们定义的几何图形融合决定。 |             |
+| + name                       | 指定连杆碰撞模型的名称。用于外部引用。 可选                  |             |
+| + \<origin>                  | 同\<visual>的\<origin>                                       |             |
+| + \<geometry>                | 同\<visual>的\<geometry>                                     |             |
+
+**示例**
+
+```xml
+<robot name="physics">
+
+    <material name="blue">
+        <color rgba="0 0 0.8 1"/>
+    </material>
+    <material name="black">
+        <color rgba="0 0 0 1"/>
+    </material>
+    <material name="white">
+        <color rgba="1 1 1 1"/>
+    </material>
+
+    <link name="base_link">
+        <visual>
+            <geometry>
+                <cylinder length="0.6" radius="0.2"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder length="0.6" radius="0.2"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="10"/>
+            <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+        </inertial>
+    </link>
+
+</robot>
+```
+
+
+
+#### 5.1.2.3 joint标签
+
+joint 描述关节的运动学和动力学属性，并指定了关节的安全极限。
+
+![关节.png](img/urdf_joint.png) 
+
+
+
+**属性**
+
+- name：指定关节的唯一名称（必选）。
+- type：指定关节的类型，可以是以下之一：
+
+| 关节类型   | 描述                                                         |
+| ---------- | ------------------------------------------------------------ |
+| revolute   | 沿轴转动的铰链关节，其范围由 lower 和 upper 指定。见 limit 标签 |
+| continuous | 绕轴旋转的连续铰链关节，没有上下限。                         |
+| prismatic  | 沿轴滑动的滑动关节，其范围由 lower 和 upper 指定。           |
+| fixed      | 这并不是真正的关节，因为它不能移动。所有自由度均被锁定。这种类型的关节不需要\<axis>、\<calibration>、\<dynamics>、\<limits>或\<safety_controller>等标签。 |
+| floating   | 该关节允许所有 6 个自由度的运动。                            |
+| planar     | 该关节允许在垂直于轴的平面上运动。                           |
+
+**子标签**
+
+| 标签或属性           | 描述                                                         | 示例      |
+| -------------------- | ------------------------------------------------------------ | --------- |
+| \<origin>            | 从父连杆到子连杆的转换。关节位于子连杆的原点，如上图。可选   |           |
+| + xyz                | x、y、z 偏移，单位：m                                        | 2.0 0 -3  |
+| + rpy                | 绕固定轴的旋转：首先绕x滚动，然后绕y俯仰，最后绕z偏航。单位：弧度 | 0.1 1 0.5 |
+|                      |                                                              |           |
+| \<parent>            | 指定关节的父连杆，必选                                       |           |
+| + link               | 父连杆名称                                                   |           |
+| \<child>             | 指定关节的子连杆，必选                                       |           |
+| + link               | 子连杆名称                                                   |           |
+|                      |                                                              |           |
+| \<axis>              | 关节框架中指定的关节轴。这是旋转关节的旋转轴、滑动关节的平移轴以及平面关节的表面法线。该轴在关节参考系中指定。固定关节和浮动关节不使用该字段。默认为 (1,0,0) |           |
+| + xyz                | 轴向量，应该被归一化。                                       |           |
+|                      |                                                              |           |
+| \<calibration>       | 关节的参考位置，用于校准关节的绝对位置。                     |           |
+| + rising             | 当关节正方向移动时，该参考位置将触发上升沿。                 |           |
+| + falling            | 当关节正方向移动时，该参考位置将触发下降沿。                 |           |
+|                      |                                                              |           |
+| \<dynamics>          | 指定关节的物理属性                                           |           |
+| + damping            | 关节的物理阻尼值（对于滑动关节，以牛顿秒每米[ *N* ∙ *s* / m ] 为单位；对于旋转关节，以牛顿米秒每弧度[ *N* ∙ *m* ∙ *s* / *rad* ] 为单位） |           |
+| + friction           | 关节的物理静摩擦值（对于滑动关节，单位为牛顿[ N ]；对于旋转关节，单位为牛顿米[ *N* ∙ *m* ]） |           |
+|                      |                                                              |           |
+| \<limit>             | 安全限制（仅旋转关节和滑动关节需要）                         |           |
+| + lower              | 指定关节下限的属性（对于旋转关节以弧度为单位，对于滑动关节以米为单位）。如果关节是连续的则省略。可选 |           |
+| + upper              | 指定关节上限的属性（对于旋转关节以弧度为单位，对于滑动关节以米为单位）。如果关节是连续的则省略。可选 |           |
+| + effort             | 限制关节最大受力（$|F_{real}|<|F_{effort}|$），单位：N，必选 |           |
+| + velocity           | 限制关节最大速度（对于旋转关节，以弧度每秒[ *rad* / *s ] 为单位，对于棱柱关节，以米每秒[ *m* / *s* ] 为单位），必选 |           |
+|                      |                                                              |           |
+| \<mimic>             | 该标签用于指定定义的关节模仿另一个现有关节。该关节的值可以计算为*value = multiplier \* other_joint_value + offset*。可选 |           |
+| + joint              | 指定要模仿的关节的名称，必选                                 |           |
+| + multiplier         | 指定上述公式中的乘法因子，可选                               |           |
+| + offset             | 指定要在上述的公式中添加的偏移量。默认为 0（旋转关节为弧度，滑动关节为米） |           |
+|                      |                                                              |           |
+| \<safety_controller> | 安全控制器，可选                                             |           |
+| + soft_lower_limit   | 指定安全控制器开始限制关节位置的下边界。该限制需要大于 limit 的 lower |           |
+| + soft_upper_limit   | 指定安全控制器开始限制关节位置的上边界。该限制需要小于 limit 的 upper |           |
+| + k_position         | 指定位置和速度限制之间的关系                                 |           |
+| + k_velocity         | 指定受力和速度限制之间的关系                                 |           |
+
+**示例**
+
+```xml
+<joint name="my_joint" type="floating">
+    <origin xyz="0 0 1" rpy="0 0 3.1416"/>
+    <parent link="link1"/>
+    <child link="link2"/>
+
+    <calibration rising="0.0"/>
+    <dynamics damping="0.0" friction="0.0"/>
+    <limit effort="30" velocity="1.0" lower="-2.2" upper="0.7" />
+    <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.0" soft_upper_limit="0.5" />
+</joint>
+```
+
+
+
+### 5.1.3 URDF建模实践
+
+
+
+
+
+https://blog.csdn.net/qq_43279579/article/details/114991696
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# 5.1.1 Gazebo 介绍
 
 Gazebo是一个功能丰富的开源机器人仿真平台，具备以下特点和功能：
 
@@ -5623,117 +5975,6 @@ Gazebo通常与机器人操作系统（ROS）结合使用。以下是一些基�
 
 
 
-### 5.1.2 URDF 建模
-
-URDF（Unified Robot Description Format，统一机器人描述格式）是ROS中一个非常重要的机器人模型描述格式，是一个标准的 XML格式，它可以反映机器人各个组件之间的位置关系。ROS同时也提供了URDF文件的C++解析器，可以解析URDF文件中使用XML格式描述的机器人模型。可以在任何文本编辑器中创建URDF文件，如果已经存在机器人的 CAD 模型，则可以使用一些工具将 CAD 模型转换为 URDF。
-
-URDF描述机器人有一个基本思想，就是一切实体皆连杆（link），实体间的相对运动关系为称为关节（joint）。
-
-#### 5.1.2.1 一个简单的实体
-
-首先，感受一下rviz中的显示，我们写一个简单的URDF文件来描述一个圆柱体，如下：
-
-```xml
-<?xml version="1.0"?>
-<robot name="mbot">
-    <link name="base_link">
-        <visual>
-            <geometry>
-                <cylinder length="0.1" radius="0.2"/>
-            </geometry>
-        </visual>
-    </link>
-</robot>
-```
-
-使用rviz查看如下图：
-
-![image-20240411233025927](img/image-20240411233025927.png)
-
-
-
-#### 5.1.2.2 rivz显示URDF模型
-
-rviz是怎么找到所指定的URDF模型的呢？
-
-通过向参数服务器查询，没错，URDF模型是储存在参数服务器中的，需要我们写入。
-
-一般是通过 launch 文件写入，如下：
-
-```xml
-<launch>
-    <param name="urdf_hello_world" textfile="$(find simulation_learning)/urdf/hello_world.urdf" />
-</launch>
-```
-
-其中，`urdf_hello_world` 是参数名字，后面供rviz查询模型；`textfile` 代表从文件写入参数，值为文件路径，`$(find simulation_learning)` 是查找`simulation_learning`功能包的路径。
-
-执行上述launch文件即可将你的URDF文件写入ROS参数服务器。
-
-然后打开rviz，初始界面如下图：
-
-![image-20240412203041970](img/image-20240412203041970.png)
-
-然后点击`Add`添加视图，选择`By display type` 中的 `RobotModel` ，如下图：
-
-![image-20240412203333726](img/image-20240412203333726.png)
-
-添加后会发现有报错，查看报错信息如下：
-
-![image-20240412204454038](img/image-20240412204454038.png)
-
-参数 `robot_description` 不存在，这是rviz RobotModel 默认的参数名，我们需要将`Robot Description`一项改成自己设置的参数名，如下图：
-
-![image-20240412205252245](img/image-20240412205252245.png)
-
-可以发现，修改后，模型显示出来了，但仍有报错，报错为 `base_link` 和 `map` 没有转换关系。我们的模型实体名称为 `base_link` ，rviz中设置的固定参考系（Fixed Frame）是 `map`，我们没有告知系统我们的模型在map中的位置，所以会报这个错。将固定参考系设置为我们的 `base_link` 即可，如下图：
-
-![image-20240412212509495](img/image-20240412212509495.png)
-
-#### 5.1.2.3 保存与加载rviz配置
-
-每次用rviz加载模型都需要配置信息，甚至更多，为了方便，我们可以导出rviz配置，下次打开直接加载即可。
-
-导出配置：依次选择 `File` -> `Save Config As` ，然后选择你要保存的位置即可。
-
-加载配置：依次选择 `File` -> `Open Config` ，然后选择你的配置文件即可。
-
-![image-20240412223328474](img/image-20240412223328474.png)
-
-
-
-#### 5.1.2.4 launch文件快速启动
-
-有时不仅会使用rviz打开模型并加载配置，还会发布模型位置信息，有时甚至还会打开多个模型，这时手动打开rviz就显得过于笨拙了，我们使用launch文件可以快速执行上述任务，如下是打开 `hello_world`模型并加载rviz配置的launch内容：
-
-```xml
-<launch>
-    <param name="urdf_hello_world" textfile="$(find simulation_learning)/urdf/hello_world.urdf" />
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find simulation_learning)/config/hello_world.rviz"/> 
-</launch>
-```
-
-其中，`hello_world.rviz` 导出的rviz配置。
-
-
-
-#### 5.1.2.5 package结构
-
-工程中，我们一般把上述文件存放在package结构中，需要时可以作为一个功能包发布，
-
-![image-20240412231113596](img/image-20240412231113596.png)
-
-其中，
-
-- `config` ：存放rviz配置文件
-- `launch` ：存放launch文件
-- `meshes` ：存放模型渲染文件
-- `urdf` ：存放URDF模型文件
-- `src/include` ：存放源文件和头文件
-
-
-
-#### 5.1.2.6 URDF语法
 
 
 
@@ -5749,7 +5990,10 @@ rviz是怎么找到所指定的URDF模型的呢？
 
 
 
- 
+
+
+
+
 
 
 
