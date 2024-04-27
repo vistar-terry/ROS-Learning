@@ -5690,7 +5690,7 @@ rviz是怎么找到所指定的URDF模型的呢？
 - `launch` ：存放launch文件
 - `meshes` ：存放模型渲染文件
 - `urdf` ：存放URDF模型文件
-- `src/include` ：存放源文件和头文件
+- `src与include` ：存放源文件和头文件
 
 
 
@@ -5900,19 +5900,111 @@ joint 描述关节的运动学和动力学属性，并指定了关节的安全�
 
 
 
-
-
 https://blog.csdn.net/qq_43279579/article/details/114991696
 
 
 
+前文介绍了URDF建模与URDF语法，接下来介绍怎么使用URDF从零构建一个机器人模型并在rviz中显示。
 
 
 
+#### 5.1.3.1 机器人结构组成
+
+最终效果如下图：
+
+![image-20240427195129404](img/image-20240427195129404.png)
+
+机器人由如下部分组成：
+
+- 底盘 * 1
+- 主动轮 * 2
+- 从动轮（脚轮）* 2
+- 激光雷达 * 1
+- RGB相机 * 1
 
 
 
+#### 5.1.3.2 新建功能包
 
+为面向零基础的同学，使教学清晰，新建一个功能包用于学习该章节，新建功能包方法见前文，功能包结构如下：
+
+![image-20240427224342123](img/image-20240427224342123.png)
+
+其中，
+
+- `config` ：存放rviz配置文件
+- `launch` ：存放launch文件
+- `meshes` ：存放模型渲染文件
+- `models` ：存放模型文件
+- `src与include` ：存放源文件和头文件
+
+
+
+#### 5.1.3.3 编写launch文件
+
+如前文所述，rviz显示urdf模型需要先把模型参数注册到参数服务器，然后打开rviz，在rviz中配置好后才能正常显示模型。这些步骤可以手动一步一步完成，也可以编写launch文件快速执行。
+
+另外，对于包含多个`link`的模型，需要发布`link`间的`joint`和`tf`关系，以使rviz可以确定`link`间的空间位置。ROS提供了 `joint_state_publisher` 和 `robot_state_publisher` 两个功能包来实现`link`间`joint`和`tf`关系的发布，如没有安装这两个功能包，可以使用如下命令安装（以noetic为例）：
+
+```bash
+sudo apt install ros-noetic-joint-state-publisher
+sudo apt install ros-noetic-robot-state-publisher
+```
+
+launch文件内容如下：
+
+```xml
+<launch>
+    <param name="robot_description" textfile="$(find simulation_learning)/models/urdf/mbot_base.urdf" />
+
+    <!-- 设置GUI参数，显示关节控制插件 -->
+    <param name="use_gui" value="true" />
+
+    <!-- 运行joint_state_publisher节点，发布机器人的关节状态  -->
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+
+    <!-- 运行robot_state_publisher节点，发布tf  -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+    <!-- 运行rviz可视化界面，并加载配置 -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find simulation_learning)/config/mbot_urdf.rviz" required="true" />
+</launch>
+```
+
+
+
+#### 5.1.3.4 创建底盘
+
+在`models/urdf`中创建`mbot_base.urdf`文件，用于编写urdf模型。
+
+底盘是一个圆柱体，半径为 `0.2m`，高为`0.16m`，urdf代码如下：
+
+```xml
+<?xml version="1.0"?>
+<robot name="mbot">
+    <link name="base_link">
+        <visual>
+            <origin xyz=" 0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder length="0.16" radius="0.20" />
+            </geometry>
+            <material name="yellow">
+                <color rgba="1 0.4 0 1" />
+            </material>
+        </visual>
+    </link>
+</robot>
+```
+
+运行 `launch` 文件，结果如下：
+
+![image-20240427231402039](img/image-20240427231402039.png)
+
+这里注意`base_link`的原点位于圆柱体的几何中心，即有一半圆柱体是位于地面以下的，这一点到最后会解决，目前先把机器人模型搭建起来。
+
+
+
+#### 5.1.3.5 创建轮子
 
 
 
