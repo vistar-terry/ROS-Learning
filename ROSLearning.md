@@ -5938,6 +5938,8 @@ https://blog.csdn.net/qq_43279579/article/details/114991696
 - `models` ：存放模型文件
 - `src与include` ：存放源文件和头文件
 
+关于ROS工作空间与功能包的创建，详见[1.3 ROS Hello World](#1.3 ROS Hello World)
+
 
 
 #### 5.1.3.3 编写launch文件
@@ -5970,6 +5972,8 @@ launch文件内容如下：
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find simulation_learning)/config/mbot_urdf.rviz" required="true" />
 </launch>
 ```
+
+关于`launch`文件的具体描述，见[4.1 launch文件](#4.1 launch文件)
 
 
 
@@ -6004,21 +6008,211 @@ launch文件内容如下：
 
 
 
-#### 5.1.3.5 创建轮子
+#### 5.1.3.5 添加轮子
+
+轮子是小一点的圆柱体，半径为 `0.06m`，高为`0.025m`。
+
+现在有了两个实体，底盘和一个轮子，需要使用`joint`说明他们之间的几何与运动关系，否则rviz解析urdf时会报错。
+
+urdf代码如下：
+
+```xml
+<!-- 底盘实体描述 -->
+<link name="base_link">
+    <visual>
+        <origin xyz=" 0 0 0" rpy="0 0 0" />
+        <geometry>
+            <cylinder length="0.16" radius="0.20" />
+        </geometry>
+        <material name="yellow">
+            <color rgba="1 0.4 0 1" />
+        </material>
+    </visual>
+</link>
+
+<!-- 左轮与底盘的关节描述 -->
+<joint name="left_wheel_joint" type="continuous">
+    <origin xyz="0 0.19 -0.05" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="left_wheel_link" />
+    <axis xyz="0 1 0" />
+</joint>
+
+<!-- 左轮实体描述 -->
+<link name="left_wheel_link">
+    <visual>
+        <origin xyz="0 0 0" rpy="1.5707 0 0" />
+        <geometry>
+            <cylinder radius="0.06" length="0.025" />
+        </geometry>
+        <material name="white">
+            <color rgba="1 1 1 0.9" />
+        </material>
+    </visual>
+</link>
+```
+
+其中，`joint`中的`type`描述了关节类型（机械中的运动副），该类型为旋转类型（机械中的旋转副），`origin`表示左轮原点相对于底盘原点的空间位姿偏移，`parent`和`child`分别表示该关节的父实体和子实体，由于该关节为旋转关节，使用`axis`定义旋转轴。关于`joint`的具体描述见[5.1.2.3 joint标签](#5.1.2.3 joint标签)。
+
+运行 `launch` 文件，结果如下：
+
+![image-20240430165341427](img/image-20240430165341427.png)
 
 
 
+#### 5.1.3.6 添加其他部件
+
+其他部件同理，添加实体与相应的关节描述。
+
+完整的urdf代码如下：
+
+```xml
+<?xml version="1.0"?>
+<robot name="mbot">
+
+    <!-- 底盘实体描述 -->
+    <link name="base_link">
+        <visual>
+            <origin xyz=" 0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder length="0.16" radius="0.20" />
+            </geometry>
+            <material name="yellow">
+                <color rgba="1 0.4 0 1" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 左轮与底盘的关节描述 -->
+    <joint name="left_wheel_joint" type="continuous">
+        <origin xyz="0 0.19 -0.05" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="left_wheel_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <!-- 左轮实体描述 -->
+    <link name="left_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5707 0 0" />
+            <geometry>
+                <cylinder radius="0.06" length="0.025" />
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 0.9" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 右轮与底盘的关节描述 -->
+    <joint name="right_wheel_joint" type="continuous">
+        <origin xyz="0 -0.19 -0.05" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="right_wheel_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <!-- 右轮实体描述 -->
+    <link name="right_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5707 0 0" />
+            <geometry>
+                <cylinder radius="0.06" length="0.025" />
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 0.9" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 前脚轮实体描述 -->
+    <joint name="front_caster_joint" type="continuous">
+        <origin xyz="0.18 0 -0.095" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="front_caster_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <!-- 前脚轮和底盘的关节描述 -->
+    <link name="front_caster_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="0.015" />
+            </geometry>
+            <material name="black">
+                <color rgba="0 0 0 0.95" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 后脚轮实体描述 -->
+    <joint name="back_caster_joint" type="continuous">
+        <origin xyz="-0.18 0 -0.095" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="back_caster_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <!-- 后脚轮和底盘的关节描述 -->
+    <link name="back_caster_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="0.015" />
+            </geometry>
+            <material name="black">
+                <color rgba="0 0 0 0.95" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 激光雷达实体描述 -->
+    <link name="laser_link">
+        <visual>
+            <origin xyz=" 0 0 0 " rpy="0 0 0" />
+            <geometry>
+                <cylinder length="0.05" radius="0.05" />
+            </geometry>
+            <material name="gray">
+                <color rgba="0.25 0.25 0.25 0.95" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 激光雷达和底盘的关节描述 -->
+    <joint name="laser_joint" type="fixed">
+        <origin xyz="0 0 0.105" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="laser_link" />
+    </joint>
+
+    <!-- 相机实体描述 -->
+    <link name="camera_link">
+        <visual>
+            <origin xyz=" 0 0 0 " rpy="0 1.57 0" />
+            <geometry>
+                <cylinder radius="0.02" length = "0.05"/>
+            </geometry>
+            <material name="gray">
+                <color rgba="0.25 0.25 0.25 0.95"/>
+            </material>
+        </visual>
+    </link>
+
+    <!-- 相机和底盘的关节描述 -->
+    <joint name="camera_joint" type="fixed">
+        <origin xyz="0.18 0 0.055" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="camera_link"/>
+    </joint>
+
+</robot>
+```
 
 
 
-
-
-
-
-
-
-
-
+#### 5.1.3.7 解决部分实体位于地面以下的问题
 
 
 
