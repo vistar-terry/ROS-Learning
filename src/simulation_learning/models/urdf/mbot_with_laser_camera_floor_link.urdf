@@ -1,10 +1,12 @@
 <?xml version="1.0"?>
 <robot name="mbot">
 
-    <!-- <link name="floor_link">
+    <!-- 地面实体描述 -->
+    <link name="floor_link">
         <visual>
-            <origin xyz=" 0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
+                <!-- 圆柱体高度尽量小，已达到可忽略的精度 -->
                 <cylinder length="0.000001" radius="0.20" />
             </geometry>
             <material name="floor">
@@ -13,17 +15,18 @@
         </visual>
     </link>
 
+    <!-- 底盘与地面的关节关系描述 -->
     <joint name="base_joint" type="continuous">
         <origin xyz="0 0 0.11" rpy="0 0 0" />
         <parent link="floor_link" />
         <child link="base_link" />
         <axis xyz="0 1 0" />
-    </joint> -->
+    </joint>
 
     <!-- 底盘实体描述 -->
     <link name="base_link">
         <visual>
-            <origin xyz=" 0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
             <geometry>
                 <cylinder length="0.16" radius="0.20" />
             </geometry>
@@ -120,7 +123,7 @@
     <!-- 激光雷达实体描述 -->
     <link name="laser_link">
         <visual>
-            <origin xyz=" 0 0 0 " rpy="0 0 0" />
+            <origin xyz="0 0 0 " rpy="0 0 0" />
             <geometry>
                 <cylinder length="0.05" radius="0.05" />
             </geometry>
@@ -140,7 +143,7 @@
     <!-- 相机实体描述 -->
     <link name="camera_link">
         <visual>
-            <origin xyz=" 0 0 0 " rpy="0 1.57 0" />
+            <origin xyz="0 0 0 " rpy="0 1.57 0" />
             <geometry>
                 <cylinder radius="0.02" length = "0.05"/>
             </geometry>

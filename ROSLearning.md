@@ -6210,9 +6210,99 @@ urdf代码如下：
 </robot>
 ```
 
+运行 `launch` 文件，结果如下：
+
+![image-20240501091828865](img/image-20240501091828865.png)
+
 
 
 #### 5.1.3.7 解决部分实体位于地面以下的问题
+
+首先明确我们的 `Fixed Frame` 是`base_link`， `Fixed Frame` 可以理解为世界坐标系，对于我们的设置就是`base_link`即当前的世界，`rviz`默认一切都是从世界中心诞生。
+
+实体位于地面以下，是由于我们设置的其他实体都是以世界中心为参考而又认为地面在轮子下方，但`rviz`认为地面原点在世界中心，所以看起来和我们的认知有些冲突。
+
+解决办法有多种，但基本都是改变`base_link`或其他实体与世界中心的关系。
+
+**方法一：**
+
+比较常见的一种：新增`floor_link`作为 `Fixed Frame` 世界坐标系，`base_link`作为他的子级。这种方法对现有已经完成的模型修改最少。
+
+在urdf文件中新增如下内容即可：
+
+```xml
+<!-- 地面实体描述 -->
+<link name="floor_link">
+    <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+            <!-- 圆柱体高度尽量小，已达到可忽略的精度 -->
+            <cylinder length="0.000001" radius="0.20" />
+        </geometry>
+        <material name="floor">
+            <color rgba="1 0.4 0 0" />
+        </material>
+    </visual>
+</link>
+
+<!-- 底盘与地面的关节关系描述 -->
+<joint name="base_joint" type="continuous">
+    <origin xyz="0 0 0.11" rpy="0 0 0" />
+    <parent link="floor_link" />
+    <child link="base_link" />
+    <axis xyz="0 1 0" />
+</joint>
+```
+
+结果如下：
+
+![image-20240501103614922](img/image-20240501103614922.png)
+
+使用`rviz`查看`TF`关系如下：
+
+![image-20240501103908541](img/image-20240501103908541.png)
+
+新增的`floor_link`如图中框选，但这种方法在工程上很难测量`base_link`的实际位置，所以就有了方法二。
+
+
+
+**方法二：**
+
+将`floor_link`直接命名为`base_link`，其他实体都以它为基准，但位置描述都要作相应的修改，这种方法对于现有已经完成的模型修改较多，对新工程比较友好，各实体的实际位置也很容易通过测量得到。
+
+修改后的`TF`树如下，此时`base_link`位于世界原点，也是机器人底盘原点在地面的投影点。
+
+![image-20240501105939843](img/image-20240501105939843.png)
+
+机器人的外观显示和方法一一样：
+
+![image-20240501161856688](img/image-20240501161856688.png)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
