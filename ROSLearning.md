@@ -6280,27 +6280,395 @@ urdf代码如下：
 
 
 
+## 5.2 使用 Xacro 优化 URDF 模型
+
+可以发现 urdf 不支持模块化编程，无法实现代码复用，也不支持数学计算， 代码可读性及复用性非常差，效率极低。
+
+为了解决这一问题，ROS提供了 Xacro ，它是 XML Macros 的缩写，即 XML 宏，是可编程的 XML，支持使用变量、函数、数学公式计算、条件/循环流程控制等。
 
 
 
+### 5.2.1 Xacro 语法
+
+使用 Xacro 时，根标签 `robot` 中必须包含命名空间声明 `xmlns:xacro = "http://wiki.ros.org/xacro"`
+
+```xml
+<robot name = "xxx" xmlns:xacro="http://wiki.ros.org/xacro">
+	...
+</robot>
+```
 
 
 
+#### 5.2.1.1 属性与属性块
+
+属性可以理解为变量，属性块可以理解为结构体。
+
+属性示例，将会一个圆柱体的半径和高封装到变量里：
+
+```xml
+<!-- 定义属性 -->
+<xacro:property name="the_radius" value="2.1" />
+<xacro:property name="the_length" value="4.5" />
+
+<!-- 调用属性 -->
+<geometry type="cylinder" radius="${the_radius}" length="${the_length}" />
+```
+
+同样，可以使用属性块封装一个实体，在需要的地方调用：
+
+```xml
+<!-- 定义属性块 -->
+<xacro:property name="front_left_origin">
+  	<origin xyz="0.3 0 0" rpy="0 0 0" />
+</xacro:property>
+
+<pr2_wheel name="front_left_wheel">
+    <!-- 调用属性块 -->
+  	<xacro:insert_block name="front_left_origin" />
+</pr2_wheel>
+```
 
 
 
+#### 5.2.1.2 数学表达式
+
+Xacro支持基本的数学表达式运算，格式如下：
+
+```xml
+${ 数学表达式 }
+```
+
+示例如下：
+
+```xml
+<xacro:property name="radius" value="4.3" />
+<circle diameter="${2 * radius}" />
+```
+
+在ROS Jade版本中，Xacro引入了python解析数学表达式，所以，Xacro数学表达式中可以使用Python math包中的函数与常量。示例如下：
+
+```xml
+<xacro:property name="R" value="2" />
+<xacro:property name="alpha" value="${30/180*pi}" />
+<circle circumference="${2 * pi * R}" pos="${sin(alpha)} ${cos(alpha)}" />
+<limit lower="${radians(-90)}" upper="${radians(90)}" effort="0" velocity="${radians(75)}" />
+```
 
 
 
+#### 5.2.1.3 宏
+
+Xacro 宏可以理解为函数，目的是提高代码复用率，优化代码结构，提高安全性。
+
+使用 `macro` 标记定义宏，并指定宏名称和参数列表，参数列表应以空格分隔。
+
+##### 1. 宏的基本使用
+
+```xml
+<!-- 定义宏 -->
+<xacro:macro name="add_wheels" params="name flag">
+    <link name="${name}_wheel">
+        <visual>
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+            </geometry>
+            <origin xyz="0.0 0.0 0.0" rpy="${PI / 2} 0.0 0.0" />
+            <material name="black" />
+        </visual>
+    </link>
+
+    <joint name="${name}_wheel2base_link" type="continuous">
+        <parent link="base_link" />
+        <child link="${name}_wheel" />
+        <origin xyz="0 ${flag * base_link_radius} ${-(earth_space + base_link_length / 2 - wheel_radius) }" />
+        <axis xyz="0 1 0" />
+    </joint>
+</xacro:macro>
+
+<!-- 调用宏 -->
+<xacro:add_wheels name="left" flag="1" />
+<xacro:add_wheels name="right" flag="-1" />
+```
+
+该实例定义了一个 `add_wheels` 的宏，它接受两个参数： `name` 和 `flag` ，分别是轮子的名字和方向。
 
 
 
+##### 2. 属性块做为宏的入参
+
+```xml
+<!-- 定义宏 -->
+<xacro:macro name="pr2_caster" params="suffix *origin">
+    <joint name="caster_${suffix}_joint">
+        <axis xyz="0 0 1" />
+    </joint>
+    <link name="caster_${suffix}">
+        <xacro:insert_block name="origin" />
+    </link>
+</xacro:macro>
+
+<!-- 调用宏 -->
+<xacro:pr2_caster suffix="front_left">
+    <pose xyz="0 1 0" rpy="0 0 0" />
+</xacro:pr2_caster>
+```
+
+该示例声明了一个宏 `pr2_caster`，它接受两个参数： `suffix` 和 `origin`。请注意， `origin` 带 `*` 。这表明 `origin` 是一个块参数。调用时在子级标签中声名块参数，多个块参数时，按插入顺序处理，如下：
+
+```xml
+<!-- 定义宏 -->
+<xacro:macro name="pr2_caster" params="suffix *origin *color *mass">
+    <joint name="caster_${suffix}_joint">
+        <axis xyz="0 0 1" />
+    </joint>
+    <link name="caster_${suffix}">
+        <xacro:insert_block name="origin" />        
+        <xacro:insert_block name="color" />        
+        <xacro:insert_block name="mass" />
+    </link>
+</xacro:macro>
+
+<!-- 调用宏 -->
+<xacro:pr2_caster suffix="front_left">
+    <pose xyz="0 1 0" rpy="0 0 0" /> <!-- origin -->
+    <color name="yellow"/> <!-- color -->
+    <mass>0.1</mass> <!-- mass -->
+</xacro:pr2_caster>
+```
 
 
 
+##### 3. 任意数量元素做为宏的入参
+
+```xml
+<!-- 定义宏 -->
+<xacro:macro name="pr2_caster" params="suffix *origin **content **anothercontent">
+    <joint name="caster_${suffix}_joint">
+        <axis xyz="0 0 1" />
+    </joint>
+    <link name="caster_${suffix}">
+        <xacro:insert_block name="origin" />
+        <xacro:insert_block name="content" />
+        <xacro:insert_block name="anothercontent" />
+    </link>
+</xacro:macro>
+
+<!-- 调用宏 -->
+<xacro:pr2_caster suffix="front_left">
+    <!-- origin -->
+    <pose xyz="0 1 0" rpy="0 0 0" />
+    <!-- content -->
+    <container>
+        <color name="yellow"/>
+        <mass>0.1</mass>
+    </container>
+    <!-- anothercontent -->
+    <another>
+        <inertial>
+            <origin xyz="0 0 0.5" rpy="0 0 0"/>
+            <mass value="1"/>
+            <inertia ixx="100"  ixy="0"  ixz="0" iyy="100" iyz="0" izz="100" />
+        </inertial>
+    </another>
+</xacro:pr2_caster>
+```
+
+该示例声明了一个宏 `pr2_caster`，除了前文讲到的参数 `suffix` 和 `origin`，还有`content`和`anothercontent`，他们前面都带`**`，表明他们允许插入任意数量的元素。按照块元素插入顺序，他们分别为 `container` 和 `another`，在他们的子级可以插入任意数量的元素。
 
 
 
+##### 4. 指定多个块元素的处理顺序
+
+上文宏定义中 `xacro:insert_block` 用于指定插入的块元素，插入的顺序即处理顺序
+
+```xml
+<!-- 定义宏 -->
+<xacro:macro name="reorder" params="*first *second">
+    <xacro:insert_block name="second"/>
+    <xacro:insert_block name="first"/>
+</xacro:macro>
+
+<!-- 调用宏 -->
+<xacro:reorder>
+    <first/>
+    <second/>
+</xacro:reorder>
+```
+
+处理顺序为 `second` -> `first`
+
+
+
+##### 5. 宏嵌套
+
+宏嵌套即一个宏内调用其他宏，这种宏在被调用时，各宏从外部到内部依次处理。
+
+```xml
+<!-- 定义宏 foo -->
+<xacro:macro name="foo" params="x">
+    <in_foo the_x="${x}" />
+</xacro:macro>
+
+<!-- 定义宏 bar -->
+<xacro:macro name="bar" params="y">
+    <in_bar>
+        <xacro:foo x="${y}" />
+    </in_bar>
+</xacro:macro>
+
+<!-- 调用宏 bar -->
+<xacro:bar y="12" />
+```
+
+调用宏`bar`并传入`12`，先展开宏`bar`，再展开宏`foo`，如下：
+
+```xml
+<in_bar>
+    <in_foo the_x="12" />
+</in_bar>
+```
+
+
+
+#### 5.2.1.4 Rospack 命令
+
+Xacro 允许使用某些 rospack 命令：
+
+```xml
+<foo value="$(find xacro)" />
+<foo value="$(arg myvar)" />
+```
+
+
+
+#### 5.2.1.5 包含其他 xacro 文件
+
+可以使用 `xacro:include` 标签包含其他 xacro 文件：
+
+```xml
+<xacro:include filename="$(find package)/other_file.xacro" />
+<xacro:include filename="other_file.xacro" />
+<xacro:include filename="$(cwd)/other_file.xacro" />
+```
+
+为了避免各个包含文件的属性和宏之间发生名称冲突，可以为包含的文件指定命名空间 - 提供属性 ns：
+
+```xml
+<xacro:include filename="other_file.xacro" ns="namespace"/>
+```
+
+通过在前面添加命名空间（用点分隔）可以访问命名空间的宏和属性：
+
+```xml
+${namespace.property}
+```
+
+
+
+#### 5.2.1.6 条件语句
+
+Xacro同样支持条件语句，示例如下：
+
+```xml
+<xacro:if value="<expression>">
+	<... some xml code here ...>
+</xacro:if>
+<xacro:unless value="<expression>">
+  	<... some xml code here ...>
+</xacro:unless>
+```
+
+其中 `<expression>` 表达式的结果必须是 `0`、`1`、`false`、`true` ，否则会报错。
+
+在 ROS Jade 版本中，Xacro引入了python解析表达式，所以，任何计算结果为布尔值的 Python 表达式都是合法的。
+
+```xml
+<xacro:property name="var" value="useit"/>
+<xacro:if value="${var == 'useit'}"/>
+<xacro:if value="${var.startswith('use') and var.endswith('it')}"/>
+
+<xacro:property name="allowed" value="${[1,2,3]}"/>
+<xacro:if value="${1 in allowed}"/>
+```
+
+
+
+#### 5.2.1.7 循环语句
+
+
+
+```xml
+<robot name="loop example" xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="loop" params="items:=^">
+        <xacro:if value="${items}">
+            <!-- pop first item from list -->
+            <xacro:property name="item" value="${items.pop(0)}"/>
+
+            <item>${item}</item>
+
+            <!-- recursively call myself -->
+            <xacro:loop/>
+        </xacro:if>
+    </xacro:macro>
+
+    <!-- define the list of items to iterate -->
+    <xacro:property name="items" value="${[1,2,3,4,5]}" />
+
+    <xacro:loop items="${list(items)}"/>
+    Passing a list copy, the original list is untouched: ${items}
+
+    <xacro:loop items="${items}" />
+    Passing the list directly, it is emptied: ${items}
+</robot>
+```
+
+
+
+```xml
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot_arm">
+  <!-- 引入参数 -->
+  <xacro:property name="num_links" value="5" />
+  <xacro:property name="link_length" value="0.5" />
+
+  <!-- 使用xacro:loop生成多个链接 -->
+  <xacro:macro name="generate_link" params="index">
+    <link name="link_${index}">
+      <visual>
+        <geometry>
+          <box size="${link_length} 0.1 0.1" />
+        </geometry>
+        <material name="blue"/>
+      </visual>
+    </link>
+
+    <joint name="joint_${index}" type="revolute">
+      <parent link="${index == 0 ? 'base_link' : 'link_' + (index - 1)}"/>
+      <child link="link_${index}"/>
+      <origin xyz="0 ${link_length * index} 0" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+  </xacro:macro>
+
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1" />
+      </geometry>
+      <material name="grey"/>
+    </visual>
+  </link>
+
+  <!-- 使用 xacro:loop 来创建多个链接和关节 -->
+  <xacro:loop var="i" start="0" end="${num_links - 1}">
+    <xacro:generate_link index="${i}" />
+  </xacro:loop>
+</robot>
+
+```
+
+http://wiki.ros.org/xacro
 
 
 
