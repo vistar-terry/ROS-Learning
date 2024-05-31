@@ -6280,7 +6280,7 @@ urdf代码如下：
 
 
 
-## 5.2 使用 Xacro 优化 URDF 模型
+## 5.2 Xacro 建模
 
 可以发现 urdf 不支持模块化编程，无法实现代码复用，也不支持数学计算， 代码可读性及复用性非常差，效率极低。
 
@@ -6531,6 +6531,30 @@ Xacro 宏可以理解为函数，目的是提高代码复用率，优化代码�
 
 
 
+##### 6. 默认参数
+
+宏的入参可以有默认值，如下使用海象运算符 `:=` ：
+
+```xml
+<xacro:macro name="foo" params="x:=${x} y:=${2*y} z:=0"/>
+```
+
+如果默认值包含表达式，则它们将在实例化时进行计算。
+
+```xml
+<xacro:macro name="foo" params="p1 p2:=expr_a p3:=^ p4:=^|expr_b">
+```
+
+符号 `^` 表示使用外部属性的值（具有相同名称）。管道 `|` 表示如果属性未在外部范围中定义，则使用给定的后备值。
+
+
+
+##### 7. 局部属性
+
+在宏中定义的属性和宏是该宏的局部属性和宏，即在外部不可见。使用可选字段 `scope="parent | global"`，可以将属性定义导出到宏的父范围（或全局范围）。
+
+
+
 #### 5.2.1.4 Rospack 命令
 
 Xacro 允许使用某些 rospack 命令：
@@ -6594,79 +6618,141 @@ Xacro同样支持条件语句，示例如下：
 
 
 
-#### 5.2.1.7 循环语句
+#### 5.2.1.7 YAML 支持
 
-
+属性也可以是字典或列表 - 使用 python 语法声明，如下所示：
 
 ```xml
-<robot name="loop example" xmlns:xacro="http://www.ros.org/wiki/xacro">
-    <xacro:macro name="loop" params="items:=^">
-        <xacro:if value="${items}">
-            <!-- pop first item from list -->
-            <xacro:property name="item" value="${items.pop(0)}"/>
+<xacro:property name="props" value="${dict(a=1, b=2, c=3)}"/>
+<xacro:property name="props_alt" value="${dict([('1a',1), ('2b',2), ('3c',3)])}"/>
+<xacro:property name="numbers" value="${[1,2,3,4]}"/>
+```
 
-            <item>${item}</item>
+或者从 YAML 文件加载，如下所示：
 
-            <!-- recursively call myself -->
-            <xacro:loop/>
-        </xacro:if>
-    </xacro:macro>
+```xml
+<xacro:property name="yaml_file" value="$(find package)/config/props.yaml" />
+<xacro:property name="props" value="${load_yaml(yaml_file)}"/>
+```
 
-    <!-- define the list of items to iterate -->
-    <xacro:property name="items" value="${[1,2,3,4,5]}" />
+从 YAML 文件加载的 xacro 属性被视为字典。 因此，如果`props.yaml`被加载到`props` xacro 属性中（如上所述）并且包含如下内容：
 
-    <xacro:loop items="${list(items)}"/>
-    Passing a list copy, the original list is untouched: ${items}
+```yaml
+val1: 10
+val2: 20
+```
 
-    <xacro:loop items="${items}" />
-    Passing the list directly, it is emptied: ${items}
-</robot>
+则可以使用如下方法读取：
+
+```xml
+<xacro:property name="val1" value="${props['val1']}" />
 ```
 
 
 
-```xml
-<?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot_arm">
-  <!-- 引入参数 -->
-  <xacro:property name="num_links" value="5" />
-  <xacro:property name="link_length" value="0.5" />
+#### 5.2.1.8 从 CMakeLists.txt 构建
 
-  <!-- 使用xacro:loop生成多个链接 -->
-  <xacro:macro name="generate_link" params="index">
-    <link name="link_${index}">
-      <visual>
-        <geometry>
-          <box size="${link_length} 0.1 0.1" />
-        </geometry>
-        <material name="blue"/>
-      </visual>
-    </link>
+以下代码片段展示了如何在包的 make 调用期间使用 xacro：
 
-    <joint name="joint_${index}" type="revolute">
-      <parent link="${index == 0 ? 'base_link' : 'link_' + (index - 1)}"/>
-      <child link="link_${index}"/>
-      <origin xyz="0 ${link_length * index} 0" rpy="0 0 0"/>
-      <axis xyz="0 0 1"/>
-    </joint>
-  </xacro:macro>
+```cmake
+# Generate .world files from .world.xacro files
+find_package(xacro REQUIRED)
+# You can also add xacro to the list of catkin packages:
+#   find_package(catkin REQUIRED COMPONENTS ... xacro)
 
-  <link name="base_link">
-    <visual>
-      <geometry>
-        <box size="0.1 0.1 0.1" />
-      </geometry>
-      <material name="grey"/>
-    </visual>
-  </link>
+# Xacro files
+file(GLOB xacro_files ${CMAKE_CURRENT_SOURCE_DIR}/worlds/*.world.xacro)
 
-  <!-- 使用 xacro:loop 来创建多个链接和关节 -->
-  <xacro:loop var="i" start="0" end="${num_links - 1}">
-    <xacro:generate_link index="${i}" />
-  </xacro:loop>
-</robot>
+foreach(it ${xacro_files})
+  # remove .xacro extension
+  string(REGEX MATCH "(.*)[.]xacro$" unused ${it})
+  set(output_filename ${CMAKE_MATCH_1})
 
+  # create a rule to generate ${output_filename} from {it}
+  xacro_add_xacro_file(${it} ${output_filename})
+
+  list(APPEND world_files ${output_filename})
+endforeach(it)
+
+# add an abstract target to actually trigger the builds
+add_custom_target(media_files ALL DEPENDS ${world_files})
 ```
+
+虽然此 cmake 代码提供了对目标名称和构建顺序的完全控制，但也有一个便捷宏：
+
+```cmake
+file(GLOB xacro_files worlds/*.world.xacro)
+xacro_add_files(${xacro_files} TARGET media_files)
+```
+
+如果希望生成 `.urdf` 文件，可以提供以 `.urdf.xacro` 结尾的输入文件，CMake 函数将删除 `.xacro` 后缀。
+
+
+
+#### 5.2.1.9 处理顺序
+
+通常的方法是，xacro 首先加载所有 `<include>` 的内容，然后处理所有属性和宏定义，最后实例化宏并计算表达式。因此，**后面的属性或宏定义将覆盖前面的**。此外，条件标签 `<if>` 和 `<unless>` 对宏或属性定义以及附加文件的 `<include>` 没有影响。
+
+**Jade 中的新功能**：
+
+自 ROS Jade 以来，xacro 提供了命令行选项 `--inorder`，允许按读取顺序处理整个文档。因此，将使用**最后读取的**属性或宏。还允许一些不错的新功能：
+
+- 如果将 `<include>` 标签分别放在宏或条件标签内，则可以推迟或完全抑制文件的包含。
+- 可以通过属性或宏参数指定包含文件名。
+- 通过在全局范围内改变属性，如果在宏中使用这些属性，宏的实例化可以产生不同的结果。
+- 属性定义可以是有条件的。
+- 宏可以在内部定义属性而不影响外部的东西。
+
+因为 `--inorder` 处理功能更加强大，在 Jade 之后的未来版本中，它成为了默认方式，所以应该检查 xacro 文件的兼容性。通常，两种处理方式会给出相同的结果。可以像这样检查：
+
+```bash
+rosrun xacro xacro file.xacro > /tmp/old.xml
+rosrun xacro xacro --inorder file.xacro > /tmp/new.xml
+diff /tmp/old.xml /tmp/new.xml
+```
+
+如果两个文件有任何差异，应该检查并调整 xacro 文件。一个常见原因是校准数据（作为属性）加载较晚，在这种情况下，只需将它们移到前面，即使用之前。为了方便搜索错误放置的属性定义，可以使用选项 `--check-order` 运行 xacro 。如果有任何有问题的属性，将在 stderr 上列出：
+
+```bash
+Document is incompatible to --inorder processing.
+The following properties were redefined after usage:
+foo redefined in issues.xacro
+```
+
+使用命令行选项 `-vv` 或 `-vvv` 可以增加详细级别来记录所有属性的定义。
+
+
+
+#### 5.2.1.10 调试语法错误
+
+要获得更详细的语法错误输出，可以运行以下命令，该命令将 xacro 转成 urdf 并检查语法错误，如果没有安装该命令，可以使用 `sudo apt install liburdfdom-tools` 安装
+
+```bash
+cd <path_to_xacro_file>
+check_urdf <(xacro model.xacro)
+```
+
+或
+
+```bash
+xacro model.urdf.xacro > tmp.urdf && check_urdf tmp.urdf && rm tmp.urdf
+```
+
+
+
+### 5.2.2 使用 Xacro 优化 URDF 模型
+
+
+
+
+
+
+
+
+
+
+
+
 
 http://wiki.ros.org/xacro
 
