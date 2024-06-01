@@ -11,7 +11,6 @@
     <xacro:property name="wheel_joint_y" value="0.19" />
     <xacro:property name="wheel_joint_z" value="0.05" />
 
-    <!-- wheel_radius - ( base_length/2 - wheel_joint_z) -->
     <xacro:property name="caster_radius" value="0.015" />
     <xacro:property name="caster_joint_x" value="0.18" />
 
@@ -23,7 +22,10 @@
         <color rgba="0 0 0 0.95" />
     </material>
     <material name="gray">
-        <color rgba="0.75 0.75 0.75 1" />
+        <color rgba="0.25 0.25 0.25 0.95" />
+    </material>
+    <material name="white">
+        <color rgba="1 1 1 0.9" />
     </material>
 
     <!-- 轮子宏定义 -->
@@ -41,7 +43,7 @@
                 <geometry>
                     <cylinder radius="${wheel_radius}" length="${wheel_length}" />
                 </geometry>
-                <material name="gray" />
+                <material name="white" />
             </visual>
         </link>
     </xacro:macro>
@@ -86,7 +88,7 @@
 
         <link name="base_link">
             <visual>
-                <origin xyz=" 0 0 0" rpy="0 0 0" />
+                <origin xyz="0 0 0" rpy="0 0 0" />
                 <geometry>
                     <cylinder length="${base_length}" radius="${base_radius}" />
                 </geometry>
