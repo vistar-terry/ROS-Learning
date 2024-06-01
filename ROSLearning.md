@@ -6236,7 +6236,7 @@ urdf代码如下：
     <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-            <!-- 圆柱体高度尽量小，已达到可忽略的精度 -->
+            <!-- 圆柱体高度尽量小，以达到可忽略的精度 -->
             <cylinder length="0.000001" radius="0.20" />
         </geometry>
         <material name="floor">
@@ -7104,7 +7104,6 @@ base.xacro：
     <xacro:property name="wheel_radius" value="0.06" />
     <xacro:property name="wheel_length" value="0.025" />
     <xacro:property name="wheel_joint_y" value="0.19" />
-    <xacro:property name="wheel_joint_z" value="0.05" />
 
     <xacro:property name="caster_radius" value="0.015" />
     <xacro:property name="caster_joint_x" value="0.18" />
@@ -7117,13 +7116,16 @@ base.xacro：
         <color rgba="0 0 0 0.95" />
     </material>
     <material name="gray">
-        <color rgba="1 1 1 0.95" />
+        <color rgba="0.25 0.25 0.25 0.95" />
+    </material>
+    <material name="white">
+        <color rgba="1 1 1 0.9" />
     </material>
 
     <!-- 轮子宏定义 -->
     <xacro:macro name="wheel" params="prefix reflect">
         <joint name="${prefix}_wheel_joint" type="continuous">
-            <origin xyz="0 ${reflect*wheel_joint_y} ${-wheel_joint_z}" rpy="0 0 0" />
+            <origin xyz="0 ${reflect*wheel_joint_y} ${wheel_radius}" rpy="0 0 0" />
             <parent link="base_link" />
             <child link="${prefix}_wheel_link" />
             <axis xyz="0 1 0" />
@@ -7135,7 +7137,7 @@ base.xacro：
                 <geometry>
                     <cylinder radius="${wheel_radius}" length="${wheel_length}" />
                 </geometry>
-                <material name="gray" />
+                <material name="white" />
             </visual>
         </link>
     </xacro:macro>
@@ -7143,7 +7145,7 @@ base.xacro：
     <!-- 脚轮宏定义 -->
     <xacro:macro name="caster" params="prefix reflect">
         <joint name="${prefix}_caster_joint" type="continuous">
-            <origin xyz="${reflect*caster_joint_x} 0 ${-(base_length/2 + caster_radius)}"
+            <origin xyz="${reflect*caster_joint_x} 0 ${caster_radius}"
                 rpy="0 0 0" />
             <parent link="base_link" />
             <child link="${prefix}_caster_link" />
@@ -7163,24 +7165,10 @@ base.xacro：
 
     <!-- 底盘宏定义 -->
     <xacro:macro name="mbot_base">
-        <link name="base_footprint">
-            <visual>
-                <origin xyz="0 0 0" rpy="0 0 0" />
-                <geometry>
-                    <box size="0.001 0.001 0.001" />
-                </geometry>
-            </visual>
-        </link>
-
-        <joint name="base_footprint_joint" type="fixed">
-            <origin xyz="0 0 ${base_length/2 + caster_radius*2}" rpy="0 0 0" />
-            <parent link="base_footprint" />
-            <child link="base_link" />
-        </joint>
 
         <link name="base_link">
             <visual>
-                <origin xyz="0 0 0" rpy="0 0 0" />
+                <origin xyz="0 0 ${2*caster_radius + base_length/2}" rpy="0 0 0" />
                 <geometry>
                     <cylinder length="${base_length}" radius="${base_radius}" />
                 </geometry>
@@ -7212,11 +7200,11 @@ mbot_base_with_laser_camera.xacro：
 
     <xacro:property name="laser_offset_x" value="0" />
     <xacro:property name="laser_offset_y" value="0" />
-    <xacro:property name="laser_offset_z" value="0.105" />
+    <xacro:property name="laser_offset_z" value="${2*caster_radius + base_length + laser_length/2}" />
 
     <xacro:property name="camera_offset_x" value="0.18" />
     <xacro:property name="camera_offset_y" value="0" />
-    <xacro:property name="camera_offset_z" value="0.055" />
+    <xacro:property name="camera_offset_z" value="0.165" />
 
     <!-- 调用base宏 -->
     <xacro:mbot_base />
@@ -7246,7 +7234,7 @@ mbot_base_with_laser_camera.xacro：
 
 rviz中显示结果为：
 
-![image-20240601194638804](img/image-20240601194638804.png)
+![image-20240601204434924](img/image-20240601204434924.png)
 
 
 
