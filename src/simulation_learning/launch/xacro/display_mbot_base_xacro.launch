@@ -1,5 +1,5 @@
 <launch>
-    <arg name="model" default="$(find xacro)/xacro --inorder '$(find simulation_learning)/models/xacro/mbot.xacro'" />
+    <arg name="model" default="$(find xacro)/xacro --inorder '$(find simulation_learning)/models/xacro/mbot_base.xacro'" />
     <arg name="gui" default="true" />
 
     <param name="robot_description" command="$(arg model)" />
@@ -14,6 +14,6 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
     <!-- 运行rviz可视化界面 -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find simulation_learning)/config/mbot.rviz" required="true" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find simulation_learning)/config/mbot_base_xacro.rviz" required="true" />
 
 </launch>

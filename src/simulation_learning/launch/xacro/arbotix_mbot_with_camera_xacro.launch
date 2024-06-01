@@ -7,10 +7,10 @@
     <!-- 设置GUI参数，显示关节控制插件 -->
     <param name="use_gui" value="$(arg gui)"/>
 
-    <node name="arbotix" pkg="arbotix_python" type="arbotix_driver" output="screen">
+    <!-- <node name="arbotix" pkg="arbotix_python" type="arbotix_driver" output="screen">
         <rosparam file="$(find simulation_learning)/config/fake_mbot_arbotix.yaml" command="load" />
         <param name="sim" value="true"/>
-    </node>
+    </node> -->
 
     <!-- 运行joint_state_publisher节点，发布机器人的关节状态  -->
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />

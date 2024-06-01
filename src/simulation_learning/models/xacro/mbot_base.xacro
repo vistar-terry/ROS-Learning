@@ -15,7 +15,7 @@
     <xacro:property name="caster_radius" value="0.015"/> 
     <xacro:property name="caster_joint_x" value="0.18"/>
 
-    <!-- Defining the colors used in this robot -->
+    <!-- 颜色列表 -->
     <material name="yellow">
         <color rgba="1 0.4 0 1"/>
     </material>
@@ -26,7 +26,7 @@
         <color rgba="0.75 0.75 0.75 1"/>
     </material>
     
-    <!-- Macro for robot wheel -->
+    <!-- 轮子宏定义 -->
     <xacro:macro name="wheel" params="prefix reflect">
         <joint name="${prefix}_wheel_joint" type="continuous">
             <origin xyz="0 ${reflect*wheel_joint_y} ${-wheel_joint_z}" rpy="0 0 0"/>
@@ -46,7 +46,7 @@
         </link>
     </xacro:macro>
 
-    <!-- Macro for robot caster -->
+    <!-- 脚轮宏定义 -->
     <xacro:macro name="caster" params="prefix reflect">
         <joint name="${prefix}_caster_joint" type="continuous">
             <origin xyz="${reflect*caster_joint_x} 0 ${-(base_length/2 + caster_radius)}" rpy="0 0 0"/>
@@ -66,6 +66,7 @@
         </link>
     </xacro:macro>
 
+    <!-- 底盘宏定义 -->
     <xacro:macro name="mbot_base">
         <link name="base_footprint">
             <visual>
@@ -92,10 +93,16 @@
             </visual>
         </link>
 
-        <wheel prefix="left" reflect="-1"/>
-        <wheel prefix="right" reflect="1"/>
+        <!-- 调用轮子宏 -->
+        <xacro:wheel prefix="left" reflect="-1"/>
+        <xacro:wheel prefix="right" reflect="1"/>
 
-        <caster prefix="front" reflect="-1"/>
-        <caster prefix="back" reflect="1"/>
+        <!-- 调用脚轮宏 -->
+        <xacro:caster prefix="front" reflect="-1"/>
+        <xacro:caster prefix="back" reflect="1"/>
     </xacro:macro>
+
+    <!-- 调用底盘宏 -->
+    <xacro:mbot_base/>
+
 </robot>
