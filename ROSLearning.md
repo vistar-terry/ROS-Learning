@@ -6742,19 +6742,150 @@ xacro model.urdf.xacro > tmp.urdf && check_urdf tmp.urdf && rm tmp.urdf
 
 ### 5.2.2 使用 Xacro 优化 URDF 模型
 
+对于前文介绍的 urdf 模型，我们可以使用 xacro 来优化，使其更易于维护。
+
+优化点：
+1. 多次用到的尺寸用常量定义
+2. 计算使用公式表示，增加可读性
+3. 重复结构用宏定义
+4. 可复用的结构模块用单独文件编写，使用时在其他文件 include
 
 
+#### 5.2.2.1 使用属性表示常量
 
+对于一些多次用到的常量，可以使用属性表示，以实现更好的可读性与可维护性。
 
+```xml
+<!-- 属性列表 -->
+<xacro:property name="M_PI" value="3.1415926"/>
+<xacro:property name="base_radius" value="0.20"/>
+<xacro:property name="base_length" value="0.16"/>
 
+<xacro:property name="wheel_radius" value="0.06"/>
+<xacro:property name="wheel_length" value="0.025"/>
+<xacro:property name="wheel_joint_y" value="0.19"/>
+<xacro:property name="wheel_joint_z" value="0.05"/>
 
+<xacro:property name="caster_radius" value="0.015"/> 
+<xacro:property name="caster_joint_x" value="0.18"/>
+```
 
+#### 5.2.2.2 使用公式
 
+需要计算的地方，在urdf中一般是计算好后，将结果填入用的地方，但这样就隐藏掉了计算过程，无论是可读性还是维护性都不好。
+从 ROS Jade 开始，Xacro支持了 Python 表达式的解析，可以使用 Python 表达式编写计算公式，使代码复用性更强。
+比如计算底盘与地面的joint，可以根据常量脚轮半径（caster_radius）与 底盘高（base_length）计算，如下：
+```xml
+<joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 ${base_length/2 + caster_radius*2}" rpy="0 0 0" />
+    <parent link="base_footprint" />
+    <child link="base_link" />
+</joint>
+```
 
+#### 5.2.2.3 使用宏定义
 
+使用宏可以封装复杂计算、通用结构等，比如左右轮子、前后脚轮等都可以抽象为一个宏，通过不同入参生成不同对象。
 
+```xml
+<!-- 轮子宏定义 -->
+<xacro:macro name="wheel" params="prefix reflect">
+    <joint name="${prefix}_wheel_joint" type="continuous">
+        <origin xyz="0 ${reflect*wheel_joint_y} ${-wheel_joint_z}" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="${prefix}_wheel_link" />
+        <axis xyz="0 1 0" />
+    </joint>
 
-http://wiki.ros.org/xacro
+    <link name="${prefix}_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="${M_PI/2} 0 0" />
+            <geometry>
+                <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+            </geometry>
+            <material name="gray" />
+        </visual>
+    </link>
+</xacro:macro>
+
+<!-- 脚轮宏定义 -->
+<xacro:macro name="caster" params="prefix reflect">
+    <joint name="${prefix}_caster_joint" type="continuous">
+        <origin xyz="${reflect*caster_joint_x} 0 ${-(base_length/2 + caster_radius)}"
+            rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="${prefix}_caster_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <link name="${prefix}_caster_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="${caster_radius}" />
+            </geometry>
+            <material name="black" />
+        </visual>
+    </link>
+</xacro:macro>
+```
+
+#### 5.2.2.4 include 其他文件
+
+有时同一个实体可能被多个机器人使用，比如传感器，这是可以将传感器单独用一个 xacro 文件表示，然后在其他文件中 include。
+
+比如相机，先写一个单独的相机xacro文件 `camera.xacro`：
+```xml
+<?xml version="1.0"?>
+<robot name="camera" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:macro name="usb_camera" params="prefix:=camera">
+        <link name="${prefix}_link">
+            <visual>
+                <origin xyz=" 0 0 0 " rpy="0 1.57 0" />
+                <geometry>
+                    <cylinder radius="0.02" length="0.05" />
+                </geometry>
+                <material name="gray">
+                    <color rgba="0.25 0.25 0.25 0.95" />
+                </material>
+            </visual>
+        </link>
+    </xacro:macro>
+
+</robot>
+```
+
+然后在机器人本体的xacro文件中include这个 `camera.xacro`：
+```xml
+<?xml version="1.0"?>
+<robot name="mbot_with_camera" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:include filename="$(find simulation_learning)/models/xacro/base.xacro" />
+    <xacro:include filename="$(find simulation_learning)/models/xacro/sensors/camera.xacro" />
+
+    <xacro:property name="camera_offset_x" value="0.18" />
+    <xacro:property name="camera_offset_y" value="0" />
+    <xacro:property name="camera_offset_z" value="0.055" />
+
+    <!-- 调用base宏 -->
+    <xacro:mbot_base />
+
+    <!-- Camera -->
+    <joint name="camera_joint" type="fixed">
+        <origin xyz="${camera_offset_x} ${camera_offset_y} ${camera_offset_z}" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="camera_link" />
+    </joint>
+
+    <!-- 调用Camera宏 -->
+    <xacro:usb_camera prefix="camera" />
+
+</robot>
+```
+
+这里注意，Xacro的 `xacro:include` 会把被include的文件内容解析展开到 `xacro:include` 的位置，所以在被include的文件中，如果有宏调用等语句，也会在 `xacro:include` 的地方生效。
+
 
 
 

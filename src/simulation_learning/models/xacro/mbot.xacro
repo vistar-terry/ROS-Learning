@@ -3,6 +3,6 @@
 
     <xacro:include filename="$(find simulation_learning)/urdf/xacro/mbot_base.xacro" />
 
-    <mbot_base/>
+    <mbot_base />
 
 </robot>

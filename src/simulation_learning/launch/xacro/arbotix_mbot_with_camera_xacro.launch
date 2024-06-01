@@ -5,7 +5,7 @@
     <param name="robot_description" command="$(arg model)" />
 
     <!-- 设置GUI参数，显示关节控制插件 -->
-    <param name="use_gui" value="$(arg gui)"/>
+    <param name="use_gui" value="$(arg gui)" />
 
     <!-- <node name="arbotix" pkg="arbotix_python" type="arbotix_driver" output="screen">
         <rosparam file="$(find simulation_learning)/config/fake_mbot_arbotix.yaml" command="load" />
