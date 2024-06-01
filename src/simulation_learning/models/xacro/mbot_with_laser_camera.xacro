@@ -7,11 +7,11 @@
 
     <xacro:property name="laser_offset_x" value="0" />
     <xacro:property name="laser_offset_y" value="0" />
-    <xacro:property name="laser_offset_z" value="0.105" />
+    <xacro:property name="laser_offset_z" value="${2*caster_radius + base_length + laser_length/2}" />
 
     <xacro:property name="camera_offset_x" value="0.18" />
     <xacro:property name="camera_offset_y" value="0" />
-    <xacro:property name="camera_offset_z" value="0.055" />
+    <xacro:property name="camera_offset_z" value="0.165" />
 
     <!-- 调用base宏 -->
     <xacro:mbot_base />
