@@ -6236,7 +6236,7 @@ urdf代码如下：
     <visual>
         <origin xyz="0 0 0" rpy="0 0 0" />
         <geometry>
-            <!-- 圆柱体高度尽量小，已达到可忽略的精度 -->
+            <!-- 圆柱体高度尽量小，以达到可忽略的精度 -->
             <cylinder length="0.000001" radius="0.20" />
         </geometry>
         <material name="floor">
@@ -6885,6 +6885,356 @@ xacro model.urdf.xacro > tmp.urdf && check_urdf tmp.urdf && rm tmp.urdf
 ```
 
 这里注意，Xacro的 `xacro:include` 会把被include的文件内容解析展开到 `xacro:include` 的位置，所以在被include的文件中，如果有宏调用等语句，也会在 `xacro:include` 的地方生效。
+
+
+
+#### 5.2.2.5 优化实践
+
+对于纯urdf实现的模型，用xacro优化后如下：
+
+优化前，完整的urdf代码：
+
+```xml
+<?xml version="1.0"?>
+<robot name="mbot">
+
+    <!-- 底盘实体描述 -->
+    <link name="base_link">
+        <visual>
+            <origin xyz=" 0 0 0" rpy="0 0 0" />
+            <geometry>
+                <cylinder length="0.16" radius="0.20" />
+            </geometry>
+            <material name="yellow">
+                <color rgba="1 0.4 0 1" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 左轮与底盘的关节描述 -->
+    <joint name="left_wheel_joint" type="continuous">
+        <origin xyz="0 0.19 -0.05" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="left_wheel_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <!-- 左轮实体描述 -->
+    <link name="left_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5707 0 0" />
+            <geometry>
+                <cylinder radius="0.06" length="0.025" />
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 0.9" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 右轮与底盘的关节描述 -->
+    <joint name="right_wheel_joint" type="continuous">
+        <origin xyz="0 -0.19 -0.05" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="right_wheel_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <!-- 右轮实体描述 -->
+    <link name="right_wheel_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="1.5707 0 0" />
+            <geometry>
+                <cylinder radius="0.06" length="0.025" />
+            </geometry>
+            <material name="white">
+                <color rgba="1 1 1 0.9" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 前脚轮实体描述 -->
+    <joint name="front_caster_joint" type="continuous">
+        <origin xyz="0.18 0 -0.095" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="front_caster_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <!-- 前脚轮和底盘的关节描述 -->
+    <link name="front_caster_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="0.015" />
+            </geometry>
+            <material name="black">
+                <color rgba="0 0 0 0.95" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 后脚轮实体描述 -->
+    <joint name="back_caster_joint" type="continuous">
+        <origin xyz="-0.18 0 -0.095" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="back_caster_link" />
+        <axis xyz="0 1 0" />
+    </joint>
+
+    <!-- 后脚轮和底盘的关节描述 -->
+    <link name="back_caster_link">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <sphere radius="0.015" />
+            </geometry>
+            <material name="black">
+                <color rgba="0 0 0 0.95" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 激光雷达实体描述 -->
+    <link name="laser_link">
+        <visual>
+            <origin xyz=" 0 0 0 " rpy="0 0 0" />
+            <geometry>
+                <cylinder length="0.05" radius="0.05" />
+            </geometry>
+            <material name="gray">
+                <color rgba="0.25 0.25 0.25 0.95" />
+            </material>
+        </visual>
+    </link>
+
+    <!-- 激光雷达和底盘的关节描述 -->
+    <joint name="laser_joint" type="fixed">
+        <origin xyz="0 0 0.105" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="laser_link" />
+    </joint>
+
+    <!-- 相机实体描述 -->
+    <link name="camera_link">
+        <visual>
+            <origin xyz=" 0 0 0 " rpy="0 1.57 0" />
+            <geometry>
+                <cylinder radius="0.02" length = "0.05"/>
+            </geometry>
+            <material name="gray">
+                <color rgba="0.25 0.25 0.25 0.95"/>
+            </material>
+        </visual>
+    </link>
+
+    <!-- 相机和底盘的关节描述 -->
+    <joint name="camera_joint" type="fixed">
+        <origin xyz="0.18 0 0.055" rpy="0 0 0"/>
+        <parent link="base_link"/>
+        <child link="camera_link"/>
+    </joint>
+
+</robot>
+```
+
+rviz中显示结果如下：
+
+![image-20240501091828865](img/image-20240501091828865.png)
+
+
+
+使用xacro优化后：
+
+分成四个文件：`camera.xacro`、`laser.xacro`、`base.xacro` 和 `mbot_base_with_laser_camera.xacro`
+
+camera.xacro：
+
+```xml
+<?xml version="1.0"?>
+<robot name="camera" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:macro name="usb_camera" params="prefix:=camera">
+        <link name="${prefix}_link">
+            <visual>
+                <origin xyz="0 0 0 " rpy="0 1.57 0" />
+                <geometry>
+                    <cylinder radius="0.02" length="0.05" />
+                </geometry>
+                <material name="black" />
+            </visual>
+        </link>
+    </xacro:macro>
+
+</robot>
+```
+
+laser.xacro：
+
+```xml
+<?xml version="1.0"?>
+<robot name="laser" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:macro name="laser" params="prefix:=laser">
+        <link name="${prefix}_link">
+            <visual>
+                <origin xyz="0 0 0 " rpy="0 0 0" />
+                <geometry>
+                    <cylinder length="0.05" radius="0.05" />
+                </geometry>
+                <material name="black" />
+            </visual>
+        </link>
+    </xacro:macro>
+
+</robot>
+```
+
+base.xacro：
+
+```xml
+<?xml version="1.0"?>
+<robot name="base" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- 属性列表 -->
+    <xacro:property name="M_PI" value="3.1415926" />
+    <xacro:property name="base_radius" value="0.20" />
+    <xacro:property name="base_length" value="0.16" />
+
+    <xacro:property name="wheel_radius" value="0.06" />
+    <xacro:property name="wheel_length" value="0.025" />
+    <xacro:property name="wheel_joint_y" value="0.19" />
+
+    <xacro:property name="caster_radius" value="0.015" />
+    <xacro:property name="caster_joint_x" value="0.18" />
+
+    <!-- 颜色列表 -->
+    <material name="yellow">
+        <color rgba="1 0.4 0 1" />
+    </material>
+    <material name="black">
+        <color rgba="0 0 0 0.95" />
+    </material>
+    <material name="gray">
+        <color rgba="0.25 0.25 0.25 0.95" />
+    </material>
+    <material name="white">
+        <color rgba="1 1 1 0.9" />
+    </material>
+
+    <!-- 轮子宏定义 -->
+    <xacro:macro name="wheel" params="prefix reflect">
+        <joint name="${prefix}_wheel_joint" type="continuous">
+            <origin xyz="0 ${reflect*wheel_joint_y} ${wheel_radius}" rpy="0 0 0" />
+            <parent link="base_link" />
+            <child link="${prefix}_wheel_link" />
+            <axis xyz="0 1 0" />
+        </joint>
+
+        <link name="${prefix}_wheel_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="${M_PI/2} 0 0" />
+                <geometry>
+                    <cylinder radius="${wheel_radius}" length="${wheel_length}" />
+                </geometry>
+                <material name="white" />
+            </visual>
+        </link>
+    </xacro:macro>
+
+    <!-- 脚轮宏定义 -->
+    <xacro:macro name="caster" params="prefix reflect">
+        <joint name="${prefix}_caster_joint" type="continuous">
+            <origin xyz="${reflect*caster_joint_x} 0 ${caster_radius}"
+                rpy="0 0 0" />
+            <parent link="base_link" />
+            <child link="${prefix}_caster_link" />
+            <axis xyz="0 1 0" />
+        </joint>
+
+        <link name="${prefix}_caster_link">
+            <visual>
+                <origin xyz="0 0 0" rpy="0 0 0" />
+                <geometry>
+                    <sphere radius="${caster_radius}" />
+                </geometry>
+                <material name="black" />
+            </visual>
+        </link>
+    </xacro:macro>
+
+    <!-- 底盘宏定义 -->
+    <xacro:macro name="mbot_base">
+
+        <link name="base_link">
+            <visual>
+                <origin xyz="0 0 ${2*caster_radius + base_length/2}" rpy="0 0 0" />
+                <geometry>
+                    <cylinder length="${base_length}" radius="${base_radius}" />
+                </geometry>
+                <material name="yellow" />
+            </visual>
+        </link>
+
+        <!-- 调用轮子宏 -->
+        <xacro:wheel prefix="left" reflect="-1" />
+        <xacro:wheel prefix="right" reflect="1" />
+
+        <!-- 调用脚轮宏 -->
+        <xacro:caster prefix="front" reflect="-1" />
+        <xacro:caster prefix="back" reflect="1" />
+    </xacro:macro>
+
+</robot>
+```
+
+mbot_base_with_laser_camera.xacro：
+
+```xml
+<?xml version="1.0"?>
+<robot name="mbot_with_laser_camera" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:include filename="$(find simulation_learning)/models/xacro/base.xacro" />
+    <xacro:include filename="$(find simulation_learning)/models/xacro/sensors/laser.xacro" />
+    <xacro:include filename="$(find simulation_learning)/models/xacro/sensors/camera.xacro" />
+
+    <xacro:property name="laser_offset_x" value="0" />
+    <xacro:property name="laser_offset_y" value="0" />
+    <xacro:property name="laser_offset_z" value="${2*caster_radius + base_length + laser_length/2}" />
+
+    <xacro:property name="camera_offset_x" value="0.18" />
+    <xacro:property name="camera_offset_y" value="0" />
+    <xacro:property name="camera_offset_z" value="0.165" />
+
+    <!-- 调用base宏 -->
+    <xacro:mbot_base />
+
+    <!-- laser_joint -->
+    <joint name="laser_joint" type="fixed">
+        <origin xyz="${laser_offset_x} ${laser_offset_y} ${laser_offset_z}" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="laser_link" />
+    </joint>
+
+    <!-- 调用laser宏 -->
+    <xacro:laser prefix="laser" />
+
+    <!-- camera_joint -->
+    <joint name="camera_joint" type="fixed">
+        <origin xyz="${camera_offset_x} ${camera_offset_y} ${camera_offset_z}" rpy="0 0 0" />
+        <parent link="base_link" />
+        <child link="camera_link" />
+    </joint>
+
+    <!-- 调用Camera宏 -->
+    <xacro:usb_camera prefix="camera" />
+
+</robot>
+```
+
+rviz中显示结果为：
+
+![image-20240601204434924](img/image-20240601204434924.png)
 
 
 
