@@ -7238,6 +7238,53 @@ rviz中显示结果为：
 
 
 
+## 5.3 控制机器人
+
+前面讲了机器人的建模，是静态的，接下来介绍对机器人的仿真控制，让你的机器人动起来。
+
+
+
+### 5.3.1 Arbotix
+
+Arbotix 是一款控制电机、舵机的硬件控制板，并提供相应的 ros 功能包，是一款基于 ROS的机器人控制系统，它旨在为小型机器人提供硬件控制和传感器接口，以便于机器人的运动和感知。它不仅可以驱动真实的 arbotix 控制板，还提供一个差速控制器，通过接收速度控制指令更新机器人的 joint 状态，从而帮助我们实现机器人在仿真环境中的运动。
+
+它的源代码可以在这个里得到：[https://github.com/vanadiumlabs/arbotix_ros](https://github.com/vanadiumlabs/arbotix_ros)
+
+#### 5.3.1.1 安装Arbotix
+
+对于 ROS1 ，有两种安装方法，命令行和源码安装。
+
+1. 命令行安装
+
+    ```bash
+    sudo apt install ros-<<VersionName()>>-arbotix*
+    ```
+
+2. 源码安装
+
+    首先创建目录`arbotix`，初始化工作空间，然后在 `src` 目录下下载源代码：
+
+    ```bash
+    git clone https://github.com/vanadiumlabs/arbotix_ros.git
+    ```
+
+    然后，编译并生成 `install`
+
+    ```
+    catkin_make # 编译
+    catkin_make install # 生成install
+    ```
+
+    
+
+
+
+
+
+
+
+
+
 
 
 
