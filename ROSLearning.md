@@ -7299,6 +7299,26 @@ Arbotix 是一款控制电机、舵机的硬件控制板，并提供相应的 ro
 
 它的源代码可以在这个里得到：[https://github.com/vanadiumlabs/arbotix_ros](https://github.com/vanadiumlabs/arbotix_ros)
 
+`arbotix_ros` 源码包含如下几部分：
+
+![image-20240608183118287](img/image-20240608183118287.png)
+
+其中，
+
+- `arbotix_controllers`：控制器，现已合并到 `arbotix_python` 中。
+- `arbotix_firmware`：处理与 ArbotiX-ROS 绑定通信的固件源代码。
+- `arbotix_msgs`：ArbotiX 的消息和服务定义。
+- `arbotix_python`：驱动程序、用于与驱动程序交互的 GUI 以及用于设置伺服电器的终端工具。
+- `arbotix_sensors`：包含几个传感器模块，可在 arbotix_python 的基本结构上添加额外的 ROS 接口层。
+
+我们主要使用 `arbotix_python` 的驱动程序模块 `arbotix_driver` 中的差速底盘控制器 `diff_controller`。
+
+更多关于 `Arbotix` 的信息见 [https://wiki.ros.org/arbotix](https://wiki.ros.org/arbotix)
+
+关于 `diff_controller` 的信息见 [http://wiki.ros.org/arbotix_python/diff_controller](http://wiki.ros.org/arbotix_python/diff_controller)
+
+
+
 #### 5.3.1.1 安装Arbotix
 
 对于 ROS1 ，有两种安装方法，命令行和源码安装。
@@ -7311,24 +7331,234 @@ Arbotix 是一款控制电机、舵机的硬件控制板，并提供相应的 ro
 
 2. 源码安装
 
-    首先创建目录`arbotix`，初始化工作空间，然后在 `src` 目录下下载源代码：
+    首先在你的工作空间的 `src` 目录下下载源代码：
 
     ```bash
     git clone https://github.com/vanadiumlabs/arbotix_ros.git
     ```
 
-    然后，编译并生成 `install`
+    然后编译即可使用 `Arbotix`
 
     ```
     catkin_make # 编译
-    catkin_make install # 生成install
     ```
-
     
 
 
+#### 5.3.1.2 配置Arbotix
+
+Arbotix 针对不同的机器人，需要配置不同的控制器，配置文件为 `yaml` 格式，如下：
+
+```yaml
+# 该文件是控制器配置,一个机器人模型可能有多个控制器，比如: 底盘、机械臂、夹持器(机械手)....
+# 因此，根 name 是 controllers
+controllers: {
+    # 单控制器设置
+    base_controller: {
+        # 类型: 差速控制器
+        type: diff_controller,
+        # 参考坐标
+        base_frame_id: base_link,
+        # 两个轮子之间的间距，单位：m
+        base_width: 0.38,
+        # 机器人每移动一米，电机编码器所记录的脉冲数
+        ticks_meter: 2000,
+        # PID控制参数，使机器人车轮快速达到预期速度
+        Kp: 12,
+        Kd: 12,
+        Ki: 0,
+        Ko: 50,
+        # 加速度限制
+        accel_limit: 1.0
+    }
+}
+```
 
 
+
+#### 5.3.1.3 配置launch启动文件
+
+启动时 Arbotix 会作为一个节点加入到 ROS Master 中，我们使用 launch 文件配置快速启动。
+
+```xml
+<node name="arbotix" pkg="arbotix_python" type="arbotix_driver" output="screen">
+    <rosparam file="$(find simulation_learning)/config/mbot_arbotix.yaml" command="load" />
+    <param name="sim" value="true"/>
+</node>
+```
+
+其中，节点名注册为 `arbotix`，包名为 `arbotix_python`，节点可执行文件名为 `arbotix_driver`；`rosparam` 一行是载入上文的 `Arbotix` 配置文件；`Arbotix` 不仅可以用于真实控制板，也可以用于仿真环境，如用于仿真，需将参数 `sim` 设置为 `true`。
+
+
+
+#### 5.3.1.4 数据交互接口
+
+该节点订阅一个话题：/cmd_vel，用于接收对机器人的速度控制信息
+
+消息格式为：geometry_msgs/Twist
+
+```xml
+geometry_msgs/Vector3 linear  # 机器人三轴线速度
+  float64 x
+  float64 y
+  float64 z
+geometry_msgs/Vector3 angular  # 机器人三轴角速度
+  float64 x
+  float64 y
+  float64 z
+```
+
+发布一个话题：/odom，用于发布机器人里程计信息，包括定位与速度等信息
+
+消息格式为：nav_msgs/Odometry
+
+```xml
+std_msgs/Header header
+  uint32 seq  # 消息序列号
+  time stamp  # 时间戳
+  string frame_id  # 消息帧id
+string child_frame_id
+geometry_msgs/PoseWithCovariance pose
+  geometry_msgs/Pose pose
+    geometry_msgs/Point position  # 机器人位置坐标
+      float64 x
+      float64 y
+      float64 z
+    geometry_msgs/Quaternion orientation # 机器人方向的四元数表示
+      float64 x
+      float64 y
+      float64 z
+      float64 w
+  float64[36] covariance  # 6x6协方差矩阵的行主表示
+geometry_msgs/TwistWithCovariance twist
+  geometry_msgs/Twist twist
+    geometry_msgs/Vector3 linear  # 机器人三轴线速度
+      float64 x
+      float64 y
+      float64 z
+    geometry_msgs/Vector3 angular  # 机器人三轴角速度
+      float64 x
+      float64 y
+      float64 z
+  float64[36] covariance  # 6x6协方差矩阵的行主表示
+```
+
+其中6x6协方差矩阵，用于量化位姿估计不确定性。这个矩阵对角线上的元素分别代表了位置与方向估计值的方差，而矩阵的非对角线元素则表示了位置与方向各估计值之间的协方差。矩阵各向量依次表示 （x，y，z，绕x轴旋转，绕y轴旋转，围绕z轴旋转）的估计不确定性。
+
+有了这两个话题，我们就可以控制并获取机器人的位姿了。
+
+
+
+#### 5.3.1.5 在rviz中仿真控制机器人
+
+使用前文 [5.1.3 URDF建模实践](#5.1.3 URDF建模实践) 创建的机器人模型，在 launch 文件中添加 Arbotix 节点的启动配置，启动后如下图：
+
+![image-20240608201952156](img/image-20240608201952156.png)
+
+
+
+##### 5.3.1.5.1 直接发topic控制
+
+发布 /cmd_vel 话题控制机器人移动，并订阅 /odom 显示机器人的实时位置与速度信息：
+
+![Peek 2024-06-08 20-37](img/2024-06-08 20-37.gif)
+
+##### 5.3.1.5.2 使用键盘控制
+
+运行ROS提供的键盘控制包，控制机器人移动：
+
+![Peek 2024-06-08 20-51](img/2024-06-08 20-51.gif)
+
+##### 5.3.1.5.3 编写代码控制机器人移动
+
+写两个节点，一个发布速度，一个订阅里程计，如下：
+
+move.cpp 用于发布速度：
+
+```cpp
+#include "ros/ros.h"
+#include "geometry_msgs/Twist.h"
+
+geometry_msgs::Twist moveRobot(const double& linear, const double& angular)
+{
+    geometry_msgs::Twist msg;
+    msg.linear.x = linear;
+    msg.linear.y = 0.0;
+    msg.linear.z = 0.0;
+    msg.angular.x = 0.0;
+    msg.angular.y = 0.0;
+    msg.angular.z = angular;
+    ROS_INFO("moveRobot, linear: %.3lf, angular: %.1lf", linear, angular*180/M_PI);
+
+    return msg;
+}
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "move_robot");
+    ros::NodeHandle nh;
+    ros::Publisher velPub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
+
+    ros::Rate r(1);
+
+    while (ros::ok())
+    {
+        velPub.publish(moveRobot(0.5, -0.3));
+        ros::Duration(3.0).sleep();
+        velPub.publish(moveRobot(-0.5, -0.3));
+        ros::Duration(3.0).sleep();
+
+        r.sleep();
+    }
+
+    return 0;
+}
+```
+
+odom.cpp 用于订阅里程计：
+
+```cpp
+#include "ros/ros.h"
+#include "nav_msgs/Odometry.h"
+
+void odomCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+    geometry_msgs::Quaternion q = msg->pose.pose.orientation;
+    ROS_INFO("pose: [%.2lf, %.2lf, %.1lf], linear: %.2lf, angular: %.2lf", 
+        msg->pose.pose.position.x, msg->pose.pose.position.y, 
+        std::atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z))*180/M_PI, 
+        msg->twist.twist.linear.x, msg->twist.twist.angular.z*180/M_PI);
+}
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "robot_odom");
+    ros::NodeHandle nh;
+    ros::Subscriber odomSub = nh.subscribe<nav_msgs::Odometry>("/odom", 10, odomCallback);
+    ros::spin();
+
+    return 0;
+}
+```
+
+CMakeList.txt 中添加内容：
+
+```cmake
+add_executable(move_robot_node src/move.cpp)
+add_executable(robot_odom_node src/odom.cpp)
+
+target_link_libraries(move_robot_node
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(robot_odom_node
+  ${catkin_LIBRARIES}
+)
+```
+
+启动 rviz 后，运行 `move_robot_node` 和 `robot_odom_node` ，如下：
+
+![Peek 2024-06-08 22-32](img/2024-06-08 22-32.gif)
 
 
 
