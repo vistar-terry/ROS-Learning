@@ -66,11 +66,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        base_footprint:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         base_link:
           Alpha: 1
           Show Axes: false
@@ -102,11 +97,28 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Class: rviz/TF
+      Enabled: false
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+      Marker Alpha: 1
+      Marker Scale: 0.30000001192092896
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        {}
+      Update Interval: 0
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: base_footprint
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -130,7 +142,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 1.1826317310333252
+      Distance: 0.9820531606674194
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -146,9 +158,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.3303983211517334
+      Pitch: 0.33039823174476624
       Target Frame: <Fixed Frame>
-      Yaw: 0.7203980684280396
+      Yaw: 1.2853991985321045
     Saved: ~
 Window Geometry:
   Displays:
@@ -166,5 +178,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1200
-  X: 466
-  Y: 139
+  X: 1358
+  Y: 246

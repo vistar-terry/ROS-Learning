@@ -66,7 +66,17 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        base_l_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_r_wheel_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -86,16 +96,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        left_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        right_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Name: RobotModel
       Robot Description: robot_description
       TF Prefix: ""
@@ -110,7 +110,7 @@ Visualization Manager:
       Frames:
         All Enabled: true
       Marker Alpha: 1
-      Marker Scale: 0.30000001192092896
+      Marker Scale: 0.25
       Name: TF
       Show Arrows: true
       Show Axes: true
@@ -147,7 +147,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.8663533329963684
+      Distance: 0.8640097379684448
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -163,9 +163,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5303977727890015
+      Pitch: 0.590397298336029
       Target Frame: <Fixed Frame>
-      Yaw: 0.8553979396820068
+      Yaw: 0.6703957319259644
     Saved: ~
 Window Geometry:
   Displays:
