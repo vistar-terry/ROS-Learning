@@ -82,7 +82,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        kinect_link:
+        laser_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -118,7 +118,7 @@ Visualization Manager:
           Value: true
         front_caster_link:
           Value: true
-        kinect_link:
+        laser_link:
           Value: true
         left_wheel_link:
           Value: true
@@ -137,7 +137,7 @@ Visualization Manager:
               {}
             front_caster_link:
               {}
-            kinect_link:
+            laser_link:
               {}
             left_wheel_link:
               {}
@@ -189,9 +189,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5053979158401489
+      Pitch: 0.3503980040550232
       Target Frame: <Fixed Frame>
-      Yaw: 0.6803987622261047
+      Yaw: 0.7603986859321594
     Saved: ~
 Window Geometry:
   Displays:
@@ -210,4 +210,4 @@ Window Geometry:
     collapsed: false
   Width: 1191
   X: 297
-  Y: 33
+  Y: 27

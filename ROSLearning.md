@@ -7883,6 +7883,22 @@ rosrun rqt_controller_manager rqt_controller_manager
 
 
 
+### 5.3.3 使用 ros_control 控制两轮差速机器人
+
+http://wiki.ros.org/diff_drive_controller
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -66,17 +66,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        base_l_wheel_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        base_r_wheel_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -92,6 +82,16 @@ Visualization Manager:
           Show Trail: false
           Value: true
         laser_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_wheel_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -182,7 +182,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 12.325655937194824
+      Distance: 10.384719848632812
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -219,4 +219,4 @@ Window Geometry:
     collapsed: true
   Width: 1200
   X: 175
-  Y: 166
+  Y: 129
