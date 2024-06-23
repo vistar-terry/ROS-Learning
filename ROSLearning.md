@@ -7883,12 +7883,237 @@ rosrun rqt_controller_manager rqt_controller_manager
 
 
 
-### 5.3.3 使用 ros_control 控制两轮差速机器人
+### 5.3.3 使用 ros_control 控制差速轮式机器人
 
 http://wiki.ros.org/diff_drive_controller
 
+ros_control 提供了多种控制器，其中 `diff_drive_controller` 用于控制差速驱动轮式机器人。
+
+#### 5.3.3.1 差速轮式机器人
+
+差速轮式机器人是一种移动机器人，其运动基于机器人身体两侧的两个独立驱动轮。因此，它可以通过改变轮子的相对旋转速度来改变方向，不需要额外的转向运动。具有这种驱动器的机器人通常有一个或多个脚轮，以防止车辆倾斜。
+
+如果两个轮子以相同的方向和速度驱动，机器人将沿直线行驶。如果两个轮子以相同的速度朝相反的方向转动，如所示图所示，机器人将绕轴的中心点旋转。否则，根据旋转速度和方向，旋转中心可能落在由两个轮胎接触点定义的线上的任何位置。当机器人沿直线行驶时，旋转中心距离机器人无限远。由于机器人的方向取决于两个驱动轮的旋转速度和方向，因此应精确感测和控制这些量。
+
+<img src="img/image-20240623192426694.png" alt="image-20240623192426694" style="zoom:50%;" />
+
+差速转向机器人与汽车中使用的差速 齿轮类似，两个车轮可以有不同的转速，但与差速齿轮系统不同，差速转向系统将为两个车轮提供动力。差速轮式机器人在机器人技术中得到广泛应用，因为它们的运动易于编程并且可以很好地控制。当今市场上几乎所有的消费机器人都使用差速转向，主要是因为它成本低且简单。
 
 
+
+#### 5.3.3.2 差速驱动机器人运动学模型
+
+如下图为轮式机器人的差速驱动运动学模型示意图：
+
+<img src="img/image-20240623192426693.png" alt="image-20240623192426693" style="zoom:50%;" />
+
+
+
+其中，
+$$
+V - 机器人线速度\\
+\omega - 机器人角速度\\
+XOY - 世界坐标系\\
+X_BY_B - 机器人坐标系\\
+\varphi - 机器人在世界坐标系的角度\\
+r - 车轮半径\\
+b - 轮距\\
+ICR - 瞬时旋转中心\\
+R - 瞬心到机器人中心的距离\\
+v_L,v_R - 左右轮接地点切向线速度\\
+\omega_L,\omega_R - 左右轮角速度
+$$
+
+有如下关系：
+$$
+\omega \cdot (R + b/2) = v_R\\
+\omega \cdot (R - b/2) = v_L
+$$
+解这两个方程可得 $\omega$ 和 $R$ ：
+$$
+\omega = (v_R-v_L)/b\\
+R = b/2 \cdot(v_R+v_L)/(v_R-v_L)
+$$
+利用角速度方程可得机器人瞬时速度 $V$ ：
+$$
+V = \omega \cdot R = (v_R+v_L)/2
+$$
+车轮切向速度也可以写成：
+$$
+v_R = r \cdot \omega_R\\
+v_L = r \cdot \omega_L
+$$
+则机器人在本体坐标系中的运动学模型为：
+$$
+\begin{bmatrix} \dot{x}_B  \\ \dot{y}_B  \\ \dot{\varphi} \end{bmatrix} 
+= \begin{bmatrix} v \cdot x_B  \\ v \cdot y_B  \\ \omega \end{bmatrix}
+\overbrace{=}^{v=r\omega} \begin{bmatrix} \frac r2 & \frac r2  \\ 0 & 0 \\ -\frac rb & \frac rb \end{bmatrix}
+\begin{bmatrix} \omega_L  \\ \omega_R  \end{bmatrix}
+$$
+再通过坐标变换，最终可以得到机器人在世界坐标中的运动学模型：
+$$
+\begin{bmatrix} \dot{x} \\ \dot{y} \\ \dot{\varphi} \end{bmatrix} 
+=  \begin{bmatrix} \cos\varphi & 0 \\ \sin\varphi & 0 \\ 0 & 1 \end{bmatrix}
+\begin{bmatrix} V  \\ \omega  \end{bmatrix}
+$$
+其中，$V$ 和 $\omega$ 为控制变量。
+
+通常我们需要通过机器人的速度和结构参数逆解出左右轮的转速，用于控制电机。在这种情况下，可以很容易地重新表述前面提到的方程。使用如下方程：
+$$
+R = V/\omega\\
+\omega_R = v_R/r\\
+\omega_L = v_L/r
+$$
+可得左右轮角速度方程：
+$$
+\omega_R = \frac{V+\omega \cdot b/2}{r} \\
+\omega_L = \frac{V-\omega \cdot b/2}{r}
+$$
+
+#### 5.3.3.3 对外接口
+
+ `diff_drive_controller` 主要通过订阅速度命令作为模块的输入，然后解析运动学模型控制电机，达到控制机器人的目的。
+
+##### 5.3.3.3.1 输入接口
+
+- cmd_vel（geometry_msgs/Twist）
+
+    位于控制器的命名空间下，给机器人发布速度
+
+##### 5.3.3.3.2 输出接口
+
+- odom（nav_msgs/Odometry）
+
+    位于控制器的命名空间下，根据硬件反馈计算的里程计信息
+
+- /tf（tf/tfMessage）
+
+    从 odom 转换为 base_link
+
+- cmd_vel_out（geometry_msgs/TwistStamped）
+
+    当 `publish_cmd` 参数设置为 `True` 时可用。在控制器的输入上应用限制器后的 Twist。
+
+
+
+#### 5.3.3.4 控制器参数
+
+ `diff_drive_controller` 提供了一些参数，用于配置机器人控制。
+
+| 参数                              | 数据类型            | 说明                                                         |
+| --------------------------------- | ------------------- | ------------------------------------------------------------ |
+| left_wheel                        | string /string[...] | 左轮关节名称或关节名称列表                                   |
+| right_wheel                       | string /string[...] | 右轮关节名称或关节名称列表                                   |
+| pose_covariance_diagonal          | double[6]           | 用于里程计位姿发布的协方差矩阵的对角线                       |
+| twist_covariance_diagonal         | double[6]           | 用于里程计 twist 发布的协方差矩阵的对角线                    |
+| publish_rate                      | double              | 发布里程计的频率，用于 tf 和 odom（单位：Hz，默认值： 50.0） |
+| wheel_separation                  | double              | 轮距，左轮和右轮之间的距离。如果未指定此参数，diff_drive_controller 将尝试从 URDF 读取值 |
+| wheel_separation_multiplier       | double              | 轮距参数的系数。用于解释机器人模型和真实机器人之间的差异。（默认值：1.0） |
+| wheel_radius                      | double              | 车轮半径。默认两侧车轮都具有相同的尺寸。如果未指定此参数，diff_drive_controller 将尝试从 URDF 读取值。 |
+| wheel_radius_multiplier           | double              | 车轮半径参数的系数。用于解释机器人模型和真实机器人之间的差异。（默认值：1.0） |
+| cmd_vel_timeout                   | double              | 两个连续速度命令之间允许的时间间隔。此延迟后，将向车轮发送零速命令。（单位：s，默认值：0.5） |
+| base_frame_id                     | string              | 用于填充Odometry消息和TF的child_frame_id（默认值：“base_link”） |
+| linear                            | object              | 线性速度配置参数                                             |
+| + x                               | object              | x轴，两轮差速机器人线速度只有x轴                             |
+| ++ has_velocity_limits            | bool                | 控制器是否限制线速度。（默认值： false）                     |
+| ++ max_velocity                   | double              | 最大线速度（单位：m/s）                                      |
+| ++ min_velocity                   | double              | 最小线速度（单位：m/s）。未指定时，使用max_velocity          |
+| ++ has_acceleration_limits        | bool                | 控制器是否限制线加速度。（默认值： false）                   |
+| ++ max_acceleration               | double              | 最大线加速度（单位：m/s^2）                                  |
+| ++ min_acceleration               | double              | 最小线加速度（单位：m/s^2）。未指定时，使用max_acceleration  |
+| ++ has_jerk_limits                | bool                | 控制器是否限制线加速度的变化快慢（默认值： false）           |
+| ++ max_jerk                       | double              | 最大 jerk（单位：m/s^3）                                     |
+| angular                           | object              | 角速度配置参数                                               |
+| + z                               | object              | z轴，两轮差速机器人角速度只有z轴                             |
+| ++ has_velocity_limits            | bool                | 控制器是否应该限制角速度（默认值： false）                   |
+| ++ max_velocity                   | double              | 最大角速度（单位：rad/s）                                    |
+| ++ min_velocity                   | double              | 最小角速度（单位：rad/s）。将其设置为 0.0 将禁用逆时针旋转。未指定时，将使用max_velocity |
+| ++ has_acceleration_limits        | bool                | 控制器是否应该限制角加速度（默认值： false）                 |
+| ++ max_acceleration               | double              | 最大角加速度（单位：rad/s^2）                                |
+| ++ min_acceleration               | double              | 最小角加速度（单位为 rad/s^2）。未指定时，使用max_acceleration。 |
+| ++ has_jerk_limits                | bool                | 控制器是否限制角加速度的变化快慢（默认值： false）           |
+| ++ max_jerk                       | double              | 最大 jerk（单位：rad/s^3）                                   |
+| enable_odom_tf                    | bool                | 是否直接发布到 TF（默认值： true ）                          |
+| odom_frame_id                     | string              | 里程计的frame_id（默认值：“/odom”）                          |
+| publish_cmd                       | bool                | 发布要执行的速度命令。用于监控限制器对控制器输入的影响。（默认值： False） |
+| allow_multiple_cmd_vel_publishers | bool                | 将其设置为 true 将允许输入接口 ~/cmd_vel 有多个发布者。如果将其设置为 false，则如果 ~/cmd_vel 有多个发布者，则会导致控制器停止运行。（默认值： False） |
+| velocity_rolling_window_size      | int                 | 用于计算里程计 twist.linear.x 和 twist.angular.z 速度的平均速度样本数量（默认值： 10） |
+
+
+
+#### 5.3.3.5 配置控制器参数
+
+最小配置示例（即必要配置项）：
+
+```yaml
+diff_drive_controller:
+    type: "diff_drive_controller/DiffDriveController"
+    left_wheel: "left_wheel_joint"
+    right_wheel: "right_wheel_joint"
+    pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
+```
+
+
+
+该差速轮式机器人完整配置：
+
+```yaml
+# 用于控制器硬件接口配置
+hardware_interface:
+  joints:
+    - left_wheel_joint
+    - right_wheel_joint
+    - front_caster_joint
+    - back_caster_joint
+
+# joint_state_controller 控制器，用于发布各关节状态
+joint_state_controller:
+  type: "joint_state_controller/JointStateController"
+  publish_rate: 50
+
+# diff_drive_controller 控制器
+diff_drive_controller:
+  type: "diff_drive_controller/DiffDriveController"
+  left_wheel: "left_wheel_joint"
+  right_wheel: "right_wheel_joint"
+  publish_rate: 50
+  pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
+  twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.03]
+  cmd_vel_timeout: 100
+  velocity_rolling_window_size: 1
+
+  publish_cmd: true
+  base_frame_id: base_link
+  enable_odom_tf: true
+  odom_frame_id: odom
+
+  # 轮间距和轮半径
+  wheel_separation: 0.38
+  wheel_radius: 0.06
+  wheel_separation_multiplier: 1.0
+  wheel_radius_multiplier: 1.0
+
+  # 速度和加速度限制
+  linear:
+    x:
+      has_velocity_limits: true
+      max_velocity: 1.0 # m/s
+      has_acceleration_limits: true
+      max_acceleration: 3.0 # m/s^2
+  angular:
+    z:
+      has_velocity_limits: true
+      max_velocity: 2.0 # rad/s
+      has_acceleration_limits: true
+      max_acceleration: 6.0 # rad/s^2
+```
+
+
+
+#### 5.3.3.6 编写硬件抽象接口
+
+ros_control 
 
 
 
