@@ -7704,7 +7704,7 @@ my_robot:
               goal:       0.15
 ```
 
-不同控制器的参数不同，详见 [http://wiki.ros.org/ros_controllers](http://wiki.ros.org/ros_controllers)
+不同控制器的参数不同，详见 [http://wiki.ros.org/ros_controllers](http://wiki.ros.org/ros_controllers)  https://index.ros.org/p/ros_controllers/#noetic
 
 
 
@@ -8113,7 +8113,27 @@ diff_drive_controller:
 
 #### 5.3.3.6 编写硬件抽象接口
 
-ros_control 
+https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/index.html
+
+ros_control 的最大优点就是把上层业务与底层硬件隔离开，使业务层不依赖于特定的硬件，为此， ros_control 提供了硬件抽象接口，控制器通过硬件接口和硬件交互数据。
+
+目前 ros_control 实现的硬件接口有：
+
+- [JointCommandInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__command__interface_8h_source.html)：支持命令关节阵列的硬件接口，他有三个派生类：
+    - EffortJointInterface：用于控制基于力/力矩的关节
+    - PositionJointInterface：用于控制基于速度的关节
+    - VelocityJointInterface：用于控制基于位置的关节
+- [JointStateInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__state__interface_8h_source.html)：读取关节的状态，每个关节都具有一定的位置、速度和力（或扭矩）
+- [ActuatorStateInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/actuator__state__interface_8h_source.html)：读取执行器的状态，每个执行器都具有一定的位置、速度和力（或扭矩）
+- [ActuatorCommandInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/actuator__command__interface_8h_source.html)
+    - EffortActuatorInterface
+    - VelocityActuatorInterface
+    - PositionActuatorInterface
+- [PosVelJointInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/posvel__command__interface_8h_source.html)：通过位置、速度控制关节
+- [PosVelAccJointInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/posvelacc__command__interface_8h_source.html)：通过位置、速度和加速度来控制关节
+- [ForceTorqueSensorInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/force__torque__sensor__interface_8h_source.html)：读取力矩传感器的状态
+- [ImuSensorInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/imu__sensor__interface_8h_source.html)：读取 IMU 传感器的状态
+- [JointModeInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__mode__interface_8h_source.html)：控制关节模式的切换
 
 
 
