@@ -7708,9 +7708,43 @@ my_robot:
 
 
 
-#### 5.3.2.3 命令行工具
+#### 5.3.2.3 硬件抽象接口
 
-##### 5.3.2.3.1 controller_manager
+https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/index.html
+
+ros_control 的最大优点就是把上层业务与底层硬件隔离开，使业务层不依赖于特定的硬件，为此， ros_control 提供了硬件抽象接口，控制器通过硬件接口和硬件交互数据。
+
+目前 ros_control 实现的硬件接口有：
+
+- [JointCommandInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__command__interface_8h_source.html)：支持命令关节阵列的硬件接口，他有三个派生类：
+    - EffortJointInterface：用于控制基于力/力矩的关节
+    - PositionJointInterface：用于控制基于速度的关节
+    - VelocityJointInterface：用于控制基于位置的关节
+- [JointStateInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__state__interface_8h_source.html)：读取关节的状态，每个关节都具有一定的位置、速度和力（或扭矩）
+- [ActuatorStateInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/actuator__state__interface_8h_source.html)：读取执行器的状态，每个执行器都具有一定的位置、速度和力（或扭矩）
+- [ActuatorCommandInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/actuator__command__interface_8h_source.html)
+    - EffortActuatorInterface
+    - VelocityActuatorInterface
+    - PositionActuatorInterface
+- [PosVelJointInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/posvel__command__interface_8h_source.html)：通过位置、速度控制关节
+- [PosVelAccJointInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/posvelacc__command__interface_8h_source.html)：通过位置、速度和加速度来控制关节
+- [ForceTorqueSensorInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/force__torque__sensor__interface_8h_source.html)：读取力矩传感器的状态
+- [ImuSensorInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/imu__sensor__interface_8h_source.html)：读取 IMU 传感器的状态
+- [JointModeInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__mode__interface_8h_source.html)：控制关节模式的切换
+
+各接口类继承关系如下：
+
+![2024-06-28_21-51-22](img/2024-06-28_21-51-22.png)
+
+各 `Interface` 实例将对应的 `Handel` 实例注册到硬件资源管理器，在硬件资源管理器统一管理所有抽象硬件。
+
+如`ros_control` 架构图所示，上层 `Controller` 通过各 `Interface` 与抽象硬件交互数据，进而对实际硬件进行读写数据。
+
+
+
+#### 5.3.2.4 命令行工具
+
+##### 5.3.2.4.1 controller_manager
 
 管理控制器生命周期：
 
@@ -7746,7 +7780,7 @@ rosrun controller_manager controller_manager <command>
 
 
 
-##### 5.3.2.3.2 spawner
+##### 5.3.2.4.2 spawner
 
 自动加载并启动一组控制器，并自动停止并卸载相同的控制器：
 
@@ -7758,7 +7792,7 @@ rosrun controller_manager spawner [--stopped] <name1> <name2> ...
 
 
 
-##### 5.3.2.3.3 unspawner
+##### 5.3.2.4.3 unspawner
 
 停止控制器，但不卸载
 
@@ -7768,7 +7802,7 @@ rosrun controller_manager unspawner <name1> <name2> ...
 
 
 
-##### 5.3.2.3.4 controller_group （melodic 新增）
+##### 5.3.2.4.4 controller_group （melodic 新增）
 
 `controller_manager` 允许开发人员在运行时切换控制器，但是当出于某些特殊目的想要从一组控制器切换到另一组控制器时，它就不那么方便了。如果在 ROS 参数 `controller_groups` 中定义了这样的组，`controller_group` 脚本就可以让这变得简单。它知道所有涉及的控制器，然后知道在从一个组切换到另一个组时需要停止和启动的控制器。因此，不同的组可以共享一些控制器。
 
@@ -7803,7 +7837,7 @@ rosrun controller_manager controller_group <command> <args>
 
 
 
-#### 5.3.2.4 加载配置并管理控制器
+#### 5.3.2.5 加载配置并管理控制器
 
 启动控制器时要注意，运行 `controller_manager` 来从启动文件中启动控制器时，即使启动文件被删除，控制器也会继续运行。建议使用 `spawner` 工具从启动文件中自动加载、启动、停止和卸载控制器，当启动 `spawner` 时，将加载并启动控制器。当停止 `spawner` 时（启动文件被删除或停止运行），将停止并卸载控制器。
 
@@ -7831,11 +7865,11 @@ rosrun rqt_controller_manager rqt_controller_manager
 
 
 
-#### 5.3.2.5 ROS API
+#### 5.3.2.6 ROS API
 
 为了与其他 ROS 节点的控制器交互，控制器管理器提供了五个服务供调用：
 
-##### 5.3.2.5.1 controller_manager/load_controller
+##### 5.3.2.6.1 controller_manager/load_controller
 
 加载指定控制器
 
@@ -7843,7 +7877,7 @@ rosrun rqt_controller_manager rqt_controller_manager
 
 
 
-##### 5.3.2.5.2 controller_manager/unload_controller
+##### 5.3.2.6.2 controller_manager/unload_controller
 
 卸载控制器，控制器仅在停止状态下才可卸载。
 
@@ -7851,7 +7885,7 @@ rosrun rqt_controller_manager rqt_controller_manager
 
 
 
-##### 5.3.2.5.3 controller_manager/switch_controller
+##### 5.3.2.6.3 controller_manager/switch_controller
 
 启动/停止 控制器
 
@@ -7859,7 +7893,7 @@ rosrun rqt_controller_manager rqt_controller_manager
 
 
 
-##### 5.3.2.5.4 controller_manager/list_controllers
+##### 5.3.2.6.4 controller_manager/list_controllers
 
 获取当前已加载的所有控制器
 
@@ -7867,7 +7901,7 @@ rosrun rqt_controller_manager rqt_controller_manager
 
 
 
-##### 5.3.2.5.5 controller_manager/list_controller_types
+##### 5.3.2.6.5 controller_manager/list_controller_types
 
 获取已知的所有控制器类型
 
@@ -7875,7 +7909,7 @@ rosrun rqt_controller_manager rqt_controller_manager
 
 
 
-##### 5.3.2.5.6 controller_manager/reload_controller_libraries
+##### 5.3.2.6.6 controller_manager/reload_controller_libraries
 
 重新加载所有可用作插件的控制器库
 
@@ -8112,32 +8146,6 @@ diff_drive_controller:
 
 
 #### 5.3.3.6 编写硬件抽象接口
-
-https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/index.html
-
-ros_control 的最大优点就是把上层业务与底层硬件隔离开，使业务层不依赖于特定的硬件，为此， ros_control 提供了硬件抽象接口，控制器通过硬件接口和硬件交互数据。
-
-目前 ros_control 实现的硬件接口有：
-
-- [JointCommandInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__command__interface_8h_source.html)：支持命令关节阵列的硬件接口，他有三个派生类：
-    - EffortJointInterface：用于控制基于力/力矩的关节
-    - PositionJointInterface：用于控制基于速度的关节
-    - VelocityJointInterface：用于控制基于位置的关节
-- [JointStateInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__state__interface_8h_source.html)：读取关节的状态，每个关节都具有一定的位置、速度和力（或扭矩）
-- [ActuatorStateInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/actuator__state__interface_8h_source.html)：读取执行器的状态，每个执行器都具有一定的位置、速度和力（或扭矩）
-- [ActuatorCommandInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/actuator__command__interface_8h_source.html)
-    - EffortActuatorInterface
-    - VelocityActuatorInterface
-    - PositionActuatorInterface
-- [PosVelJointInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/posvel__command__interface_8h_source.html)：通过位置、速度控制关节
-- [PosVelAccJointInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/posvelacc__command__interface_8h_source.html)：通过位置、速度和加速度来控制关节
-- [ForceTorqueSensorInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/force__torque__sensor__interface_8h_source.html)：读取力矩传感器的状态
-- [ImuSensorInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/imu__sensor__interface_8h_source.html)：读取 IMU 传感器的状态
-- [JointModeInterface](https://docs.ros.org/en/melodic/api/hardware_interface/html/c++/joint__mode__interface_8h_source.html)：控制关节模式的切换
-
-
-
-
 
 
 
