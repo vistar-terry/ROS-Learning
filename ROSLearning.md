@@ -998,7 +998,7 @@ ROS 中的基本通信机制主要有如下三种实现策略:
 首先创建 `topic_hello_world` 包，命令如下：
 
 ```bash
-catkin_creat_pkg topic_hello_world std_msgs roscpp rospy
+catkin_create_pkg topic_hello_world std_msgs roscpp rospy
 ```
 
 创建后，文件结构如下：
@@ -1810,7 +1810,7 @@ rosrun topic_hello_world user_msg_sub.py
 首先创建 `service_hello_world` 包，命令如下：
 
 ```bash
-catkin_creat_pkg service_hello_world std_srvs roscpp rospy
+catkin_create_pkg service_hello_world std_srvs roscpp rospy
 ```
 
 创建后，文件结构如下：
@@ -2160,7 +2160,7 @@ rosrun service_hello_world service_hello_world_client.py
 首先创建 `param_hello_world` 包，命令如下：
 
 ```bash
-catkin_creat_pkg param_hello_world roscpp rospy
+catkin_create_pkg param_hello_world roscpp rospy
 ```
 
 创建后，文件结构如下：
@@ -3516,7 +3516,7 @@ Quaternion orientation # 一个四元数，表示姿态角
 
 ### 4.2.3 广播与监听位姿关系
 
-如前文所属，ROS通过广播的形式告知各模块的位姿关系，接下来详述这一机制的代码实现。
+如前文所述，ROS通过广播的形式告知各模块的位姿关系，接下来详述这一机制的代码实现。
 
 模块间的位置关系有两种类型，一种是相对固定的，称为静态坐标变换，一种是相对不固定，随时变化的，称为动态坐标变换。
 
@@ -3524,7 +3524,7 @@ Quaternion orientation # 一个四元数，表示姿态角
 
 所谓静态坐标变换，是指两个坐标系之间的相对位置是固定的。比如机器人底盘上安装了一个激光雷达，他和底盘组成一个刚体，它们的相对位姿不会随机器人的运动而变化，他们之间的坐标变换即属于静态坐标变换。
 
-假设激光雷达相对与底盘的欧拉位姿为（0.5, 0.0, 0.3; 0.0, 0.0, 0.0）
+假设激光雷达相对于底盘的欧拉位姿为（0.5, 0.0, 0.3; 0.0, 0.0, 0.0）
 
 雷达检测到的障碍物位置为（2.0, 2.5, 0.3）
 
@@ -3538,7 +3538,7 @@ Quaternion orientation # 一个四元数，表示姿态角
 首先创建 `tf2_learning` 包，命令如下：（这一步不是必须，这里只是为了方便清晰的说明，也可以使用已有的包，在包里新增节点等方法）
 
 ```bash
-catkin_creat_pkg tf2_learning roscpp rospy geometry_msgs std_msgs tf2 tf2_geometry_msgs tf2_ros
+catkin_create_pkg tf2_learning roscpp rospy geometry_msgs std_msgs tf2 tf2_geometry_msgs tf2_ros
 ```
 
 创建后，文件结构如下：
@@ -3945,7 +3945,92 @@ int main(int argc, char **argv)
 
 ![Peek 2023-12-31 13-00](img/Peek 2023-12-31 13-00.gif)
 
-#### 4.2.3.5 TF树
+#### 4.2.3.5 动态坐标变换（Python）
+
+在创建的 `tf2_learning` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `dynamic_frame_broadcast.py` 以实现坐标广播，编辑内容如下：
+
+```python
+#! /usr/bin/env python
+
+import rospy
+import tf2_ros
+import tf
+from turtlesim.msg import Pose
+from geometry_msgs.msg import TransformStamped
+
+# 回调函数处理
+def turtle1PoseCallback(pose):
+    # 创建 TF 广播器
+    broadcaster = tf2_ros.TransformBroadcaster()
+    # 创建 广播的数据(通过 pose 设置)
+    tfs = TransformStamped()
+    tfs.header.frame_id = "world"
+    tfs.header.stamp = rospy.Time.now()
+    tfs.child_frame_id = "turtle1"
+    tfs.transform.translation.x = pose.x
+    tfs.transform.translation.y = pose.y
+    tfs.transform.translation.z = 0.0
+    qtn = tf.transformations.quaternion_from_euler(0,0,pose.theta)
+    tfs.transform.rotation.x = qtn[0]
+    tfs.transform.rotation.y = qtn[1]
+    tfs.transform.rotation.z = qtn[2]
+    tfs.transform.rotation.w = qtn[3]
+    # 广播器发布数据
+    broadcaster.sendTransform(tfs)
+
+if __name__ == "__main__":
+    # 初始化 ROS 节点
+    rospy.init_node("dynamic_frame_broadcast_py")
+    # 订阅 /turtle1/pose 话题消息
+    sub = rospy.Subscriber("/turtle1/pose", Pose, turtle1PoseCallback)
+    rospy.spin()
+```
+
+创建 `dynamic_frame_listen.py` 以订阅静态坐标转换关系，并利用该关系将雷达坐标系的点转换到 world 坐标系，编辑内容如下：
+
+```python
+#! /usr/bin/env python
+
+import rospy
+import tf2_ros
+# 不要使用 geometry_msgs,需要使用 tf2 内置的消息类型
+from tf2_geometry_msgs import PointStamped
+# from geometry_msgs.msg import PointStamped
+
+if __name__ == "__main__":
+    # 初始化 ROS 节点
+    rospy.init_node("dynamic_frame_listen_py")
+    # 创建 TF 订阅对象
+    buffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(buffer)
+
+    rate = rospy.Rate(1)
+    while not rospy.is_shutdown():    
+    # 创建一个 radar 坐标系中的坐标点
+        point_source = PointStamped()
+        point_source.header.frame_id = "turtle1"
+        point_source.header.stamp = rospy.Time.now()
+        point_source.point.x = 10
+        point_source.point.y = 2
+        point_source.point.z = 3
+
+        try:
+            # 转换坐标点, 计算小乌龟坐标系下的坐标点在 world 下的坐标
+            point_target = buffer.transform(point_source,"world",rospy.Duration(1))
+            rospy.loginfo("point_target: (%.2f, %.2f, %.2f), frame: %s",
+                            point_target.point.x,
+                            point_target.point.y,
+                            point_target.point.z,
+                            point_target.header.frame_id)
+        except Exception as e:
+            rospy.logerr("%s", e)
+
+        rate.sleep()
+```
+
+
+
+#### 4.2.3.6 TF树
 
 在机器人系统中，存在运动学模型和动力学模型。对于刚体机器人，动力学模型基于刚体动力学，代表机器人系统在运动过程中力/力矩与其运动状态的变化关系。而运动学模型则由一系列固连在不同位置的坐标系来表示，仅仅代表机器人的运动状态。例如，对于多自由度机械臂，其运动学模型为末端位置到各个关节角的坐标变换关系；对于旋翼无人机，主要的运动学关系是机体固连坐标系与世界坐标系之间的变换。
 
@@ -7646,11 +7731,11 @@ target_link_libraries(robot_odom_node
 
 - joint_state_controller
     - JointStateController：从硬件接口获取关节状态，并将这些状态信息发布到 `/joint_states` 话题
-- joint_trajectory_controller
+- [joint_trajectory_controller](https://wiki.ros.org/joint_trajectory_controller)
     - JointTrajectoryController：接收轨迹信息（即一系列期望的关节位置、速度和加速度），并控制机器人的关节按照这些轨迹运动。该控制器适用于需要精确轨迹跟踪的任务，如路径规划和任务执行。
 - gripper_action_controller
     - GripperActionController：控制机械手夹具的开闭位置
-- diff_drive_controller
+- [diff_drive_controller](https://wiki.ros.org/diff_drive_controller)
     - DiffDriveController：控制差速驱动的机器人
 - effort_controllers
     - JointEffortController：控制单个关节的力/力矩。通过设定期望的力/力矩，使关节达到所需状态。
@@ -7672,7 +7757,7 @@ target_link_libraries(robot_odom_node
 - forward_command_controller
     - ForwardCommandController：用于将单个关节的命令直接传递到硬件接口
     - ForwardJointGroupCommandController：用于将一组关节的命令直接传递到硬件接口
-- ackermann_steering_controller
+- [ackermann_steering_controller](https://wiki.ros.org/ackermann_steering_controller)
     - AckermannSteeringController：接收线速度和转向角度指令，然后根据 Ackermann 转向几何原理计算并控制各个车轮的转向角和速度，使车辆能够按照预定轨迹运动
 - four_wheel_steering_controller
     - FourWheelSteeringController：接收线速度和转向角度指令，然后根据四轮转向几何原理计算并控制各个车轮的转向角和速度，使车辆能够按照预定轨迹运动
@@ -8147,19 +8232,209 @@ diff_drive_controller:
 
 #### 5.3.3.6 编写硬件抽象接口
 
+下面写一个两轮差速硬件接口，使用速度控制接口 `VelocityJointInterface` 控制 joint 的速度，使用 `JointStateInterface` 获取 joint 的位置、速度、力等信息。
+
+硬件抽象接口头文件：diff_drive_hardware_interface.h
+
+```cpp
+#ifndef DIFF_DRIVE_HARDWARE_INTERFACE_H
+#define DIFF_DRIVE_HARDWARE_INTERFACE_H
+
+#include <ros/ros.h>
+#include <hardware_interface/joint_command_interface.h>
+#include <hardware_interface/joint_state_interface.h>
+#include <hardware_interface/robot_hw.h>
+#include <controller_manager/controller_manager.h>
+
+class DiffDriveHWInterface : public hardware_interface::RobotHW
+{
+public:
+    struct JointInfo
+    {
+        std::string name;
+        double cmd;
+        double pos;
+        double vel;
+        double eff;
+
+        JointInfo() : name(""), cmd(0.0), pos(0.0), vel(0.0), eff(0.0)
+        {}
+
+        JointInfo(std::string name_) 
+            : name(name_), cmd(0.0), pos(0.0), vel(0.0), eff(0.0)
+        {}
+
+        JointInfo(std::string name_, double cmd_, double pos_, double vel_, double dff_) 
+            : name(name_), cmd(cmd_), pos(pos_), vel(vel_), eff(dff_)
+        {}
+
+    };
+    
+public:
+    DiffDriveHWInterface(ros::NodeHandle &nh);
+    void init();
+    void read(const ros::Duration &period);
+    void write(const ros::Duration &period);
+
+private:
+    ros::NodeHandle m_nh;
+    hardware_interface::JointStateInterface m_jnt_state_interface;
+    hardware_interface::VelocityJointInterface m_jnt_vel_interface;
+    std::vector<JointInfo> m_joints;
+};
+
+#endif // DIFF_DRIVE_HARDWARE_INTERFACE_H
+```
+
+源文件：diff_drive_hardware_interface.cpp
+
+```cpp
+#include "diff_drive_control/diff_drive_hardware_interface.h"
+
+DiffDriveHWInterface::DiffDriveHWInterface(ros::NodeHandle &nh) : m_nh(nh)
+{
+}
+
+/**
+ * @brief 初始化关节信息
+ *        注册抽象硬件接口
+ * 
+ */
+void DiffDriveHWInterface::init()
+{
+    std::vector<std::string> joint_names;
+    m_nh.getParam("/hardware_interface/joints", joint_names);
+    for (std::string name : joint_names)
+    {
+        m_joints.push_back(JointInfo(name));
+    }
+
+    for (auto &joint : m_joints)
+    {
+        ROS_INFO("get joint: %s", joint.name.c_str());
+
+        // Initialize hardware interface
+        hardware_interface::JointStateHandle state_handle(joint.name, &joint.pos, &joint.vel, &joint.eff);
+        m_jnt_state_interface.registerHandle(state_handle);
+
+        hardware_interface::JointHandle vel_handle(m_jnt_state_interface.getHandle(joint.name), &joint.cmd);
+        m_jnt_vel_interface.registerHandle(vel_handle);
+    }
+
+    registerInterface(&m_jnt_state_interface);
+    registerInterface(&m_jnt_vel_interface);
+}
+
+void DiffDriveHWInterface::read(const ros::Duration &period)
+{
+    // Read the state of the hardware (e.g., from sensors)
+}
+
+void DiffDriveHWInterface::write(const ros::Duration &period)
+{
+    // Send the command to the hardware (e.g., to actuators)
+    for (auto &joint : m_joints)
+    {
+        joint.pos += joint.vel * period.toSec();
+        // if (joint.vel != joint.cmd)
+        // {
+        //     ROS_INFO("write, joint: %s, cmd: %lf", joint.name.c_str(), joint.cmd);
+        // }
+        joint.vel = joint.cmd;
+    }
+}
+```
+
+控制节点：diff_drive_control_node.cpp
+
+```cpp
+#include <ros/ros.h>
+#include <controller_manager/controller_manager.h>
+#include "diff_drive_control/diff_drive_hardware_interface.h"
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "diff_drive_control_node");
+    ros::NodeHandle nh;
+
+    DiffDriveHWInterface diff_drive(nh);
+    diff_drive.init();
+
+    controller_manager::ControllerManager cm(&diff_drive, nh);
+
+    ros::Rate rate(50.0);
+    ros::AsyncSpinner spinner(1);
+    spinner.start();
+
+    while (ros::ok())
+    {
+        ros::Duration period = rate.expectedCycleTime();
+        diff_drive.write(period);
+        cm.update(ros::Time::now(), period);
+        rate.sleep();
+    }
+
+    return 0;
+}
+```
 
 
 
+#### 5.3.3.7 控制机器人移动
+
+机器人模型与硬件接口都准备好了，接下来开始编写业务代码控制机器人。
+
+我们仅给机器人发送速度指令，模拟机器人移动任务，如下：
+
+```cpp
+#include <ros/ros.h>
+#include <geometry_msgs/Twist.h>
+
+geometry_msgs::Twist moveRobot(const double& linear, const double& angular)
+{
+    geometry_msgs::Twist msg;
+    msg.linear.x = linear; // 线速度
+    msg.linear.y = 0.0;
+    msg.linear.z = 0.0;
+    msg.angular.x = 0.0;
+    msg.angular.y = 0.0;
+    msg.angular.z = angular; // 角速度
+    ROS_INFO("moveRobot, linear: %.3lf, angular: %.1lf", linear, angular*180/M_PI);
+
+    return msg;
+}
+
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "diff_drive_business");
+    ros::NodeHandle nh;
+    ros::Publisher velPub = nh.advertise<geometry_msgs::Twist>("/diff_drive_controller/cmd_vel", 10);
+
+    ros::Rate rate(10);
+
+    while (ros::ok())
+    {
+        velPub.publish(moveRobot(0.5, 0));
+        ros::Duration(3.0).sleep();
+        velPub.publish(moveRobot(0, 1.57));
+        ros::Duration(1.0).sleep();
+
+        rate.sleep();
+    }
+
+    return 0;
+}
+```
+
+编译执行该节点，在rviz中的可视化结果如下：
+
+![Peek 2024-06-29 16-36](img/Peek 2024-06-29 16-36.gif)
+
+[项目源码](https://gitee.com/vistary/ros_control_demos)
 
 
 
-
-
-
-
-
-
-# 5.1.1 Gazebo 介绍
+## 5.4 Gazebo 介绍与使用
 
 Gazebo是一个功能丰富的开源机器人仿真平台，具备以下特点和功能：
 
@@ -8197,6 +8472,16 @@ Gazebo通常与机器人操作系统（ROS）结合使用。以下是一些基�
 - 导入模型：在使用Gazebo时，需要导入机器人和环境的模型。这些模型通常是以 `urdf/sdf` 格式存在的，Gazebo支持这两种格式的文件，并且提供了一些常用的[模型库](https://github.com/osrf/gazebo_models)供用户下载和使用。
 
 - URDF和SDF文件：URDF（Unified Robot Description Format）和SDF（Simulation Description Format）是用于描述机器人和仿真环境的两种文件格式。URDF主要用于描述机器人模型，而SDF则用于描述仿真世界。Gazebo可以处理这两种格式的文件，并且用户可以在这两种格式之间进行转换。
+
+
+
+
+
+
+
+
+
+
 
 
 
