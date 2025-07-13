@@ -1,4 +1,4 @@
-# ROSLearning
+ROSLearning
 
 # 一、ROS概览
 
@@ -2665,9 +2665,404 @@ if __name__ == "__main__":
 
 ![image-20231119204921754](img/image-20231119204921754.png)
 
+
+
 ## 2.4 动作通讯（Action）
 
-动作通讯和服务类似，但单次服务通讯是阻塞的，只有服务端将服务请求处理完成才会将结果返回给客户端，而有些场景中我们不仅需要知道请求的处理结果，还需要知道请求处理的进度或其他中间结果。比如，要控制机器人到达目标点A，服务通讯方式会
+严格来说，Action不是基本通讯模型，它的底层由Topic组成。
+
+Action通讯和Service类似，但单次Service通讯是阻塞的，只有服务端将服务请求处理完成后，才会返回结果给客户端。而有些场景中，我们不仅需要知道请求的处理结果，还需要知道请求处理的进度或其他中间结果。
+
+比如，要控制机器人到达目标点A，Service通讯方式收到请求后会执行任务直到成功或失败，过程中客户端不会收到任何关于该任务的信息；而Action通讯方式，首先客户端告诉服务端机器人要走到A；服务端确认添加任务；然后服务端开始执行任务；最后服务端返回任务执行结果。
+
+### 2.4.1 动作通讯模型
+
+Action是一种用于处理长时间运行任务的通信机制，采用客户端-服务器模型，主要由5个Topic实现：
+
+![image-20250713205143771](img/image-20250713205143771.png)
+
+
+
+|      Topic 名称       |            消息类型            |      方向       |   作用   |
+| :-------------------: | :----------------------------: | :-------------: | :------: |
+|   /action_name/goal   |      ActionNameActionGoal      | Client → Server | 发送目标 |
+|  /action_name/cancel  |     actionlib_msgs/GoalID      | Client → Server | 取消请求 |
+|  /action_name/status  | actionlib_msgs/GoalStatusArray | Server → Client | 状态更新 |
+| /action_name/feedback |    ActionNameActionFeedback    | Server → Client | 进度反馈 |
+|  /action_name/result  |     ActionNameActionResult     | Server → Client | 最终结果 |
+
+### 2.4.2 动作通讯流程
+
+主要分为添加、执行、完成三个阶段：
+
+1. 任务添加阶段
+
+​		由客户端向服务端发送目标的Topic，服务端接收后，向客户端发送确认的Topic
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    
+    C->>S: 通过 /goal topic 发送 ActionGoal
+    S->>C: 通过 /status topic 确认接收 (状态变为 ACTIVE)
+```
+
+2. 任务执行阶段
+
+​		目标任务确认后，服务端开始执行任务，并周期性向客户端发送任务执行信息
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    
+    loop 定期发送
+        S->>C: 通过 /feedback topic 发送 ActionFeedback
+    end
+```
+
+
+
+3. 任务完成阶段
+
+​		任务成功、失败或取消，由服务端向客户端发送任务结果信息
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    
+    alt 任务成功
+        S->>C: 通过 /result topic 发送 ActionResult (状态: SUCCEEDED)
+    else 任务失败
+        S->>C: 通过 /result topic 发送 ActionResult (状态: ABORTED)
+    else 任务取消
+        C->>S: 通过 /cancel topic 发送取消请求
+        S->>C: 通过 /result topic 发送 ActionResult (状态: PREEMPTED)
+    end
+```
+
+### 2.4.3 Action Hello World
+
+万物始于Hello World，同样，使用Hello World介绍Action的简单使用。
+
+使用Action时，需要注意以下几点：
+
+- Action名称
+- 消息格式（.action，目标、最终结果、连续反馈）
+- 客户端实现（发送目标，处理确认目标、定期任务信息、任务完成等各阶段的回调）
+- 服务端实现（初始化服务器，发布定期任务信息，发布任务信息等）
+
+为便于理解，我们使用Action实现一个查找n以内所有质数的功能。
+
+#### 2.4.3.1 创建并初始化功能包
+
+（这一步不是必须，这里只是为了方便清晰的说明，也可以使用已有的包，在包里新增节点等方法）
+
+首先创建 `action_hello_world` 包，命令如下：
+
+```bash
+catkin_create_pkg action_hello_world actionlib roscpp rospy
+```
+
+创建后，文件结构如下：
+
+![image-20250713234819490](img/image-20250713234819490.png)
+
+#### 2.4.3.2 确定Action名称及消息格式
+
+Action名称：/find_primes
+
+消息文件名：FindPrimes.action
+
+消息文件路径：在创建的 `action_hello_world` 包路径下创建一个 `action` 目录，将`FindPrimes.action`存放在该目录下
+
+消息文件内容：
+
+```xml
+# 目标
+int32 number # 查找 number 以内的质数
+---
+# 最终结果
+int32 number 
+int32[] primes # number 以内的质数
+---
+# 连续反馈
+int32 number # 当前检查的数字
+bool is_prime # 是否是质数
+```
+
+这里说明一下，Action的消息体由固定的 `目标`、`最终结果`、`连续反馈` 三部分组成，每一部分可以看做是一个`msg`消息体，依次对应前文 `动作通讯流程` 中的任务`添加`、`完成`、`执行`三个阶段。
+
+
+
+#### 2.4.3.3 配置编译文件
+
+**1. 添加message_generation功能包**
+
+`message_generation`功能包，在构建时根据`action`、 `msg`和`srv`生成消息和服务的接口文件（比如C++头文件和Python包），以便在 ROS 节点中使用。
+
+在`package.xml`中添加以下内容：
+
+```xml
+<build_depend>message_generation</build_depend>
+```
+
+>小知识：
+>
+>这里其实也需要在 `CMakeLists.txt` 添加，类似如下：
+>
+>```cmake
+>find_package(catkin REQUIRED COMPONENTS
+>  actionlib
+>  roscpp
+>  rospy
+>  message_generation
+>)
+>```
+>
+>但由于`actionlib`已经隐式调用过了`message_generation`，所以这里不需要显式声明。
+
+**2. 添加action文件**
+
+在 `CMakeLists.txt` 添加自定义`action`，该函数依赖`message_generation`功能包。
+
+```cmake
+add_action_files(
+  FILES
+  FindPrimes.action
+)
+```
+
+**3. 配置依赖并生成接口文件**
+
+添加处理`action`、 `msg`或`srv`所需要的依赖，并生成接口文件，该函数依赖`message_generation`功能包。
+
+```cmake
+generate_messages(
+  DEPENDENCIES
+  actionlib
+)
+```
+
+**4 . 添加message_runtime依赖**
+
+`message_runtime` 用于在运行时提供消息的序列化和反序列化支持。
+
+这里注意，有时可能会看到没有显式添加 `message_runtime` 也能正常运行，这通常是因为其他依赖项（例如`roscpp` 或 `std_msgs`）可能已经隐含地包含了 `message_runtime`。在这种情况下，构建系统已经处理了消息生成的任务。
+
+然而，为了确保你的软件包在所有情况下都能正常工作，最好显式添加 `message_runtime` 作为你的软件包的依赖项。这样可以确保你的消息定义在构建和运行时得到正确处理。
+
+需要对 `CMakeLists.txt` 作以下修改：
+
+```cmake
+catkin_package(
+  CATKIN_DEPENDS roscpp rospy actionlib message_runtime
+)
+```
+
+同时在`package.xml`中添加以下内容：
+
+```xml
+<exec_depend>message_runtime</exec_depend>
+```
+
+
+
+#### 2.4.3.4 实现服务端与客户端（C++版）
+
+在创建的 `action_hello_world` 包路径下有一个 `src` 目录，在这里存储C++源码，我们创建 `action_hello_world_server.cpp` 以实现服务端，编辑内容如下：
+
+```cpp
+/*
+    实现流程:
+        1.包含头文件
+        2.初始化 ROS 节点:命名(唯一)
+        3.实例化 ROS 句柄
+        4.实例化 Action服务器 对象
+        5.实现服务任务（发布任务反馈、返回最终结果）
+        6.启动 Action 服务器
+*/
+
+// 1.包含头文件
+#include <cmath>
+#include <actionlib/server/simple_action_server.h>
+#include <action_hello_world/FindPrimesAction.h>
+
+typedef actionlib::SimpleActionServer<action_hello_world::FindPrimesAction> Server;
+
+// 判断给定数字是否是质数
+bool isPrime(int n)
+{
+    bool ret = true;
+    if (n <= 1)
+    {
+        ret = false;
+    }
+    else if (n % 2 == 0)
+    {
+        ret = (n == 2);
+    }
+    else
+    {
+        for (int i = 3;; i += 2)
+        {
+            if (i > n / i)
+            {
+                break;
+            }
+            else if (n % i == 0)
+            {
+                ret = false;
+            }
+        }
+    }
+    ROS_INFO("%d %s prime.", n, ret ? "is" : "is not");
+
+    return ret;
+}
+
+// 5.实现服务任务（发布任务反馈、返回最终结果）
+void execute(const action_hello_world::FindPrimesGoalConstPtr &goal, Server *server)
+{
+    action_hello_world::FindPrimesFeedback feedback;
+    std::vector<int> primes; // 存放找到的质数
+    for (size_t i = 0; i <= goal->number; i++)
+    {
+        feedback.number = i;
+        feedback.is_prime = isPrime(i);
+        server->publishFeedback(feedback); // 发布反馈
+        // 存储找到的质数
+        if (feedback.is_prime)
+        {
+            primes.push_back(i);
+        }
+
+        ros::Duration(0.5).sleep();
+    }
+    // 返回最终结果
+    action_hello_world::FindPrimesResult result;
+    result.number = goal->number;
+    result.primes = primes;
+    server->setSucceeded(result);
+}
+
+int main(int argc, char **argv)
+{
+    // 解决中文打印乱码
+    setlocale(LC_ALL, "");
+    // 2.初始化 ROS 节点:命名(唯一)
+    ros::init(argc, argv, "action_hello_world_server");
+    // 3.实例化 ROS 句柄
+    ros::NodeHandle nh;
+    // 4.实例化 Action服务器 对象
+    Server server(nh, "/find_primes", boost::bind(&execute, _1, &server), false);
+    // 6.启动服务器
+    server.start();
+    ros::spin();
+
+    return 0;
+}
+```
+
+创建 `action_hello_world_client.cpp` 以实现客户端，编辑内容如下：
+
+```cpp
+/*
+    实现流程:
+        1.包含头文件
+        2.初始化 ROS 节点:命名(唯一)
+        3.实例化 Action客户端 对象
+        4.等待服务端启动完成
+        5.实例化目标对象
+        6.发送目标任务到服务端
+        7.等待任务完成
+*/
+
+// 1.包含头文件
+#include <ros/ros.h>
+#include <sstream>
+#include <actionlib/client/simple_action_client.h>
+#include <action_hello_world/FindPrimesAction.h>
+
+typedef actionlib::SimpleActionClient<action_hello_world::FindPrimesAction> Client;
+
+// 处理最终结果
+void done_cb(const actionlib::SimpleClientGoalState &state, const action_hello_world::FindPrimesResultConstPtr &result)
+{
+    if (state.state_ == state.SUCCEEDED)
+    {
+        std::stringstream ss;
+        for (const int n : result->primes)
+        {
+            ss << std::to_string(n) << " ";
+        }
+        ROS_INFO("%d 以内的质数有: [ %s]", result->number, ss.str().c_str());
+    }
+}
+
+// 确认目标，服务激活
+void active_cb()
+{
+    ROS_INFO("开始查找...");
+}
+
+// 处理连续反馈的定期任务信息
+void feedback_cb(const action_hello_world::FindPrimesFeedbackConstPtr &feedback)
+{
+    ROS_INFO("当前数字: %d, %s质数", feedback->number, feedback->is_prime?"是":"不是");
+}
+
+int main(int argc, char **argv)
+{
+    setlocale(LC_ALL, ""); // 解决中文打印乱码
+
+    // 2.初始化 ROS 节点:命名(唯一)
+    ros::init(argc, argv, "action_hello_world_client");
+    // 3.实例化 Action客户端 对象
+    Client client("/find_primes", true);
+    // 4.等待服务端启动完成
+    client.waitForServer();
+    ROS_INFO("添加任务前的状态: %s", client.getState().toString().c_str());
+    // 5.实例化目标对象
+    action_hello_world::FindPrimesGoal goal;
+    goal.number = 12;
+    ROS_INFO("查找 %d 以内的质数", goal.number);
+    // 6.发送目标任务到服务端，并注册任务完成、确认目标、定期任务信息的回调函数
+    client.sendGoal(goal, &done_cb, &active_cb, &feedback_cb);
+    ROS_INFO("添加任务后的状态: %s", client.getState().toString().c_str());
+
+    ros::Duration(1.0).sleep();
+    ROS_INFO("执行任务时的状态: %s", client.getState().toString().c_str());
+    // 7.等待任务完成
+    client.waitForResult(ros::Duration(1000.0)); // 等待结果，1000秒超时
+    ROS_INFO("任务执行完的状态: %s", client.getState().toString().c_str());
+
+    return 0;
+}
+```
+
+**编译运行**
+
+进入工作空间执行 `catkin_make` 命令编译工程，编译成功后，使用如下命令依次启动服务器和客户端。
+
+```bash
+1. 启动ros master
+roscore
+2. 启动服务器
+rosrun action_hello_world action_hello_world_server
+3. 启动客户端
+rosrun action_hello_world action_hello_world_client
+```
+
+结果如下：
+
+![image-20250714004114997](img/image-20250714004114997.png)
+
+目前为止，**Action Hello World** 已经成功了。
+
+
 
 
 

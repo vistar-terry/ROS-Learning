@@ -1,0 +1,10 @@
+# 目标
+int32 number # 查找 number 以内的质数
+---
+# 最终结果
+int32 number 
+int32[] primes # number 以内的质数
+---
+# 连续反馈
+int32 number # 当前检查的数字
+bool is_prime # 是否是质数

@@ -8,10 +8,10 @@ project(action_hello_world)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  actionlib
   roscpp
   rospy
-  actionlib_msgs
-  # message_generation  actionlib_msgs隐式调用了message_generation，所以这里不需要显式声明
+  # message_generation  # actionlib隐式调用了message_generation，所以这里不需要显式声明
 )
 
 ## System dependencies are found with CMake's conventions
@@ -64,14 +64,13 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate actions in the 'action' folder
 add_action_files(
   FILES
-  MoveTo.action
+  FindPrimes.action
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  actionlib_msgs
-  std_msgs
+  actionlib
 )
 
 ################################################
@@ -106,7 +105,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES action_hello_world
-  CATKIN_DEPENDS actionlib_msgs
+  CATKIN_DEPENDS roscpp rospy actionlib message_runtime
 #  DEPENDS system_lib
 )
 
@@ -135,12 +134,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_pub src/action_hello_world_pub.cpp)
-add_executable(${PROJECT_NAME}_sub src/action_hello_world_sub.cpp)
-add_executable(${PROJECT_NAME}_user_msg_pub src/user_msg_pub.cpp)
-add_executable(${PROJECT_NAME}_user_msg_sub src/user_msg_sub.cpp)
-add_dependencies(${PROJECT_NAME}_user_msg_pub ${PROJECT_NAME}_generate_messages_cpp)
-add_dependencies(${PROJECT_NAME}_user_msg_sub ${PROJECT_NAME}_generate_messages_cpp)
+add_executable(${PROJECT_NAME}_client src/action_hello_world_client.cpp)
+add_executable(${PROJECT_NAME}_server src/action_hello_world_server.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -151,23 +146,18 @@ add_dependencies(${PROJECT_NAME}_user_msg_sub ${PROJECT_NAME}_generate_messages_
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME}_client ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME}_server ${PROJECT_NAME}_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_pub
+target_link_libraries(${PROJECT_NAME}_client
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(${PROJECT_NAME}_sub
+target_link_libraries(${PROJECT_NAME}_server
   ${catkin_LIBRARIES}
 )
 
-target_link_libraries(${PROJECT_NAME}_user_msg_pub
-  ${catkin_LIBRARIES}
-)
-
-target_link_libraries(${PROJECT_NAME}_user_msg_sub
-  ${catkin_LIBRARIES}
-)
 
 #############
 ## Install ##
@@ -179,10 +169,8 @@ target_link_libraries(${PROJECT_NAME}_user_msg_sub
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/action_hello_world_pub.py
-  scripts/action_hello_world_sub.py
-  scripts/user_msg_pub.py
-  scripts/user_msg_sub.py
+  scripts/action_hello_world_client.py
+  scripts/action_hello_world_server.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
