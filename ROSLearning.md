@@ -2815,10 +2815,10 @@ bool is_prime # 是否是质数
 >
 >```cmake
 >find_package(catkin REQUIRED COMPONENTS
->  actionlib
->  roscpp
->  rospy
->  message_generation
+>      actionlib
+>      roscpp
+>      rospy
+>      message_generation
 >)
 >```
 >
@@ -3062,17 +3062,174 @@ rosrun action_hello_world action_hello_world_client
 
 目前为止，**Action Hello World** 已经成功了。
 
+#### 2.4.3.5 实现服务端与客户端（Python版）
 
+在创建的 `action_hello_world` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `action_hello_world_server.py` 以实现服务端，编辑内容如下：
 
+```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+# 1. 导入依赖包
+import rospy
+import math
+import actionlib
+from action_hello_world.msg import FindPrimesAction, FindPrimesResult, FindPrimesFeedback
 
+# 判断给定数字是否是质数
+def is_prime(n):
+    if n <= 1:
+        rospy.loginfo(f"{n} 不是质数")
+        return False
+    if n == 2:
+        rospy.loginfo(f"{n} 是质数")
+        return True
+    if n % 2 == 0:
+        rospy.loginfo(f"{n} 不是质数")
+        return False
+    
+    # 检查从3到sqrt(n)的奇数因子
+    ret = True
+    for i in range(3, int(math.sqrt(n)) + 1, 2):
+        if n % i == 0:
+            ret = False
+            break
+    
+    status_str = "是" if ret else "不是"
+    rospy.loginfo(f"{n} {status_str}质数")
+    return ret
 
+# 实现服务任务（发布任务反馈、返回最终结果）
+def execute_cb(goal):
+    primes = []  # 存放找到的质数
+    target = goal.number
+    
+    # 创建反馈对象
+    feedback = FindPrimesFeedback()
+    
+    # 从2开始检查到目标数字
+    for num in range(2, target + 1):
+        # 更新反馈信息
+        feedback.number = num
+        feedback.is_prime = is_prime(num)
+        
+        # 如果是质数则添加到结果列表
+        if feedback.is_prime:
+            primes.append(num)
+        
+        # 发布反馈
+        server.publish_feedback(feedback)
+        
+        # 模拟处理时间
+        rospy.sleep(0.5)
+    
+    # 返回最终结果
+    result = FindPrimesResult()
+    result.number = target
+    result.primes = primes
+    server.set_succeeded(result)
 
+if __name__ == "__main__":
+    # 2. 初始化ROS节点
+    rospy.init_node("action_hello_world_server")
 
+    # 3. 实例化Action服务器对象
+    server = actionlib.SimpleActionServer(
+        "/find_primes", 
+        FindPrimesAction, 
+        execute_cb, 
+        auto_start=False
+    )
+    
+    # 4. 启动服务器
+    server.start()
+    rospy.loginfo("质数查找服务器已启动...")
+    
+    # 保持节点运行
+    rospy.spin()
+```
 
+创建 `action_hello_world_client.py` 以实现客户端，编辑内容如下：
 
+```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+# 1. 导入依赖包
+import rospy
+import actionlib
+from action_hello_world.msg import FindPrimesAction, FindPrimesGoal, FindPrimesResult, FindPrimesFeedback
 
+def done_cb(state, result):
+    """处理最终结果回调"""
+    if state == actionlib.GoalStatus.SUCCEEDED:
+        primes_str = " ".join(str(n) for n in result.primes)
+        rospy.loginfo(f"{result.number} 以内的质数有: [ {primes_str} ]")
+
+def active_cb():
+    """目标激活回调"""
+    rospy.loginfo("开始查找...")
+
+def feedback_cb(feedback):
+    """处理反馈回调"""
+    status_str = "是" if feedback.is_prime else "不是"
+    rospy.loginfo(f"当前数字: {feedback.number}, {status_str}质数")
+
+if __name__ == "__main__":
+    # 2. 初始化ROS节点
+    rospy.init_node("action_hello_world_client")
+    
+    # 3. 实例化Action客户端对象
+    client = actionlib.SimpleActionClient("/find_primes", FindPrimesAction)
+    
+    # 4. 等待服务端启动
+    rospy.loginfo("等待服务端启动...")
+    client.wait_for_server()
+    rospy.loginfo(f"添加任务前的状态: {client.get_state()}")
+    
+    # 5. 实例化目标对象
+    goal = FindPrimesGoal()
+    goal.number = 12
+    rospy.loginfo(f"查找 {goal.number} 以内的质数")
+    
+    # 6. 发送目标任务
+    client.send_goal(goal, done_cb=done_cb, active_cb=active_cb, feedback_cb=feedback_cb)
+    rospy.loginfo(f"添加任务后的状态: {client.get_state()}")
+    
+    rospy.sleep(1.0)
+    rospy.loginfo(f"执行任务时的状态: {client.get_state()}")
+    
+    # 7. 等待任务完成
+    client.wait_for_result(rospy.Duration(1000.0))  # 1000秒超时
+    rospy.loginfo(f"任务执行完的状态: {client.get_state()}")
+```
+
+修改 `CMakeLists.txt` ，只需添加如下内容：
+
+```cmake
+catkin_install_python(PROGRAMS
+  scripts/action_hello_world_server.py
+  scripts/action_hello_world_client.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+```
+
+**编译运行**
+
+进入工作空间执行 `catkin_make` 命令编译工程，编译成功后，使用如下命令依次启动服务端和客户端。
+
+```bash
+1. 启动ros master(如果已启动，无需再启动)
+roscore
+2. 启动服务端
+rosrun action_hello_world action_hello_world_server.py
+3. 启动客户端
+rosrun action_hello_world action_hello_world_client.py
+```
+
+结果如下：
+
+![image-20250715232703250](img/image-20250715232703250.png)
 
 
 

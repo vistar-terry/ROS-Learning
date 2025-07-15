@@ -1,32 +1,80 @@
-#! /usr/bin python
-"""
-    实现流程:
-        1.导包 
-        2.初始化 ROS 节点:命名(唯一)
-        3.实例化 订阅者 对象
-        4.处理订阅的消息(回调函数)
-        5.设置循环调用回调函数
-"""
-# 1.导包
-from chores.msg import DoDishesAction
-import actionlib
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# 1. 导入依赖包
 import rospy
-import roslib
-roslib.load_manifest('my_pkg_name')
+import math
+import actionlib
+from action_hello_world.msg import FindPrimesAction, FindPrimesResult, FindPrimesFeedback
 
+# 判断给定数字是否是质数
+def is_prime(n):
+    if n <= 1:
+        rospy.loginfo(f"{n} 不是质数")
+        return False
+    if n == 2:
+        rospy.loginfo(f"{n} 是质数")
+        return True
+    if n % 2 == 0:
+        rospy.loginfo(f"{n} 不是质数")
+        return False
+    
+    # 检查从3到sqrt(n)的奇数因子
+    ret = True
+    for i in range(3, int(math.sqrt(n)) + 1, 2):
+        if n % i == 0:
+            ret = False
+            break
+    
+    status_str = "是" if ret else "不是"
+    rospy.loginfo(f"{n} {status_str}质数")
+    return ret
 
-class DoDishesServer:
-    def __init__(self):
-        self.server = actionlib.SimpleActionServer(
-            'do_dishes', DoDishesAction, self.execute, False)
-        self.server.start()
+# 实现服务任务（发布任务反馈、返回最终结果）
+def execute_cb(goal):
+    primes = []  # 存放找到的质数
+    target = goal.number
+    
+    # 创建反馈对象
+    feedback = FindPrimesFeedback()
+    
+    # 从2开始检查到目标数字
+    for num in range(2, target + 1):
+        # 更新反馈信息
+        feedback.number = num
+        feedback.is_prime = is_prime(num)
+        
+        # 如果是质数则添加到结果列表
+        if feedback.is_prime:
+            primes.append(num)
+        
+        # 发布反馈
+        server.publish_feedback(feedback)
+        
+        # 模拟处理时间
+        rospy.sleep(0.5)
+    
+    # 返回最终结果
+    result = FindPrimesResult()
+    result.number = target
+    result.primes = primes
+    server.set_succeeded(result)
 
-    def execute(self, goal):
-        # Do lots of awesome groundbreaking robot stuff here
-        self.server.set_succeeded()
+if __name__ == "__main__":
+    # 2. 初始化ROS节点
+    rospy.init_node("action_hello_world_server")
 
-
-if __name__ == '__main__':
-    rospy.init_node('do_dishes_server')
-    server = DoDishesServer()
+    # 3. 实例化Action服务器对象
+    server = actionlib.SimpleActionServer(
+        "/find_primes", 
+        FindPrimesAction, 
+        execute_cb, 
+        auto_start=False
+    )
+    
+    # 4. 启动服务器
+    server.start()
+    rospy.loginfo("质数查找服务器已启动...")
+    
+    # 保持节点运行
     rospy.spin()
