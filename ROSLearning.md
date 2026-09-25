@@ -362,7 +362,8 @@ ROS提供了 `rosrun` 命令，可以根据包名和节点名，在任何目录�
 进入到 `ros_learning/src/hello_world` 目录，新建 `scripts` 目录，在该目录中新增 `hello_world.py`，内容如下：
 
 ```python
-#! /usr/bin python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-  说明：python2默认使用ASCII编码，需要加这一行
 
 import rospy
 
@@ -1188,7 +1189,8 @@ roscore
 在创建的 `topic_hello_world` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `topic_hello_world_pub.py` 以实现发布者，编辑内容如下：
 
 ```python
-#! /usr/bin python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
     实现流程:
         1.导包 
@@ -1236,7 +1238,8 @@ if __name__ == "__main__":
 在`scrips`中创建 `topic_hello_world_sub.py` 以实现订阅者，编辑内容如下：
 
 ```python
-#! /usr/bin python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
     实现流程:
         1.导包 
@@ -1665,7 +1668,8 @@ rosrun topic_hello_world topic_hello_world_user_msg_sub
 在 `topic_hello_world` 包路径下的 `scripts` 目录中，创建 `user_msg_pub.py` 以实现发布者，编辑内容如下：
 
 ```python
-#! /usr/bin python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import rospy
 from topic_hello_world.msg import RobotPose
@@ -1693,7 +1697,8 @@ if __name__ == "__main__":
 在`scrips`中创建 `user_msg_sub.py` 以实现订阅者，编辑内容如下：
 
 ```python
-#! /usr/bin python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import rospy
 from topic_hello_world.msg import RobotPose
@@ -1991,6 +1996,8 @@ rosrun service_hello_world service_hello_world_client
 在创建的 `service_hello_world` 包路径下 `src` 目录的同级，创建一个 `scripts` 目录，在这里存储脚本（如python脚本），我们创建 `service_hello_world_server.py` 以实现服务端，编辑内容如下：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rospy
 from std_srvs.srv import SetBool, SetBoolResponse
 
@@ -2026,6 +2033,8 @@ if __name__ == "__main__":
 创建 `service_hello_world_client.py` 以实现客户端，编辑内容如下：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import sys
 import rospy
 from std_srvs.srv import SetBool, SetBoolRequest
@@ -2583,6 +2592,8 @@ catkin_install_python(PROGRAMS
 在 `scripts` 中创建 `param_hello_world_set.py` 编辑内容如下：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rospy
 import os
 
@@ -2613,6 +2624,8 @@ if __name__ == "__main__":
 在 `scripts` 中创建 `param_hello_world_get.py` 编辑内容如下：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rospy
 
 
@@ -5597,6 +5610,8 @@ write(self, topic, msg, t=None, raw=False, connection_header=None)
 代码示例：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rosbag
 import rospkg
 from std_msgs.msg import Int32, String
@@ -5649,6 +5664,8 @@ read_messages(self,
 代码示例：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rosbag
 import rospkg
 
@@ -5689,6 +5706,8 @@ flush(self)
 代码示例：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rospy
 import rosbag
 import rospkg
@@ -5745,6 +5764,8 @@ reindex(self)
 代码示例：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rosbag
 import rospkg
 
@@ -5784,6 +5805,8 @@ get_compression_info(self)
 代码示例：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rosbag
 import rospkg 
 
@@ -5820,6 +5843,8 @@ get_message_count(self, topic_filters=None)
 代码示例：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rosbag
 import rospkg 
 
@@ -5855,6 +5880,8 @@ get_end_time(self)
 代码示例：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rosbag
 import rospkg
 from datetime import datetime
@@ -5925,6 +5952,8 @@ TypesAndTopicsTuple(
 代码示例：
 
 ```python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rosbag
 import rospkg
 from datetime import datetime

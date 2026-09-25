@@ -1,4 +1,5 @@
-#! /usr/bin python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
     实现流程:
         1.导包 

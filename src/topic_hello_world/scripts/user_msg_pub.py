@@ -1,4 +1,5 @@
-#! /usr/bin python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import rospy
 from topic_hello_world.msg import RobotPose

@@ -1,5 +1,5 @@
-#!/usr/bin/python3
-#-*- coding:UTF-8 -*-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import rospy
 from rosgraph_msgs.msg import Log

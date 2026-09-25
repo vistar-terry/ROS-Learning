@@ -1,4 +1,5 @@
-#! /usr/bin python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-  python2默认使用ASCII编码，需要加这一行
 
 import rospy
 

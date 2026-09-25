@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import rosbag
 import rospkg
 from std_msgs.msg import Int32, String
